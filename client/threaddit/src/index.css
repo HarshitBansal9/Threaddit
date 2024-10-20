@@ -1,0 +1,111 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* White */
+    --foreground: 240 10% 3.9%; /* Very dark gray */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 240 10% 3.9%; /* Very dark gray */
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 240 10% 3.9%; /* Very dark gray */
+    --primary: 240 5.9% 10%; /* Dark blue-gray */
+    --primary-foreground: 0 0% 98%; /* Near white */
+    --secondary: 240 4.8% 95.9%; /* Light gray */
+    --secondary-foreground: 240 5.9% 10%; /* Dark blue-gray */
+    --muted: 240 4.8% 95.9%; /* Light gray */
+    --muted-foreground: 240 3.8% 46.1%; /* Medium gray */
+    --accent: 240 4.8% 95.9%; /* Light gray */
+    --accent-foreground: 240 5.9% 10%; /* Dark navy blue */
+    --success: 134 61% 41%; /* Green */
+    --destructive: 0 84.2% 60.2%; /* Dark navy blue */
+    --destructive-foreground: 0 0% 98%; /* Near white */
+    --border: 240 5.9% 90%; /* Light gray */
+    --input: 240 5.9% 90%; /* Light gray */
+    --ring: 240 10% 3.9%; /* Very dark gray */
+    --chart-1: 12 76% 61%; /* Orange */
+    --chart-2: 173 58% 39%; /* Teal */
+    --chart-3: 197 37% 24%; /* Dark teal */
+    --chart-4: 43 74% 66%; /* Yellow-green */
+    --chart-5: 27 87% 67%; /* Amber */
+    --radius: 0.5rem; /* Border radius */
+  }
+
+  .dark {
+    --background: 240 10% 3.9%; /* Very dark gray */
+    --foreground: 0 0% 98%; /* Near white */
+    --card: 240 10% 3.9%; /* Darker gray */
+    --card-foreground: 0 0% 98%; /* Near white */
+    --popover: 240 10% 3.9%; /* Very dark gray */
+    --popover-foreground: 0 0% 98%; /* Near white */
+    --primary: 0 0% 98%; /* Near white */
+    --primary-foreground: 240 5.9% 10%; /* Dark blue-gray */
+    --secondary: 240 3.7% 15.9%; /* Very dark gray */
+    --secondary-foreground: 0 0% 98%; /* Near white */
+    --muted: 240 3.7% 15.9%; /* Very dark gray */
+    --muted-foreground: 240 5% 64.9%; /* Medium gray */
+    --accent: 240 3.7% 15.9%; /* Very dark gray */
+    --accent-foreground: 0 0% 98%; /* Dark navy blue */
+    --success: 134 61% 41%; /* Green */
+    --destructive: 0 62.8% 30.6%; /* Dark navy blue */
+    --destructive-foreground: 0 0% 98%; /* Near white */
+    --border: 240 3.7% 15.9%; /* Dark navy blue */
+    --input: 240 3.7% 15.9%; /* Very dark gray */
+    --ring: 240 4.9% 83.9%; /* Light blue-gray */
+    --chart-1: 220 70% 50%; /* Bright blue */
+    --chart-2: 160 60% 45%; /* Sea green */
+    --chart-3: 30 80% 55%; /* Coral */
+    --chart-4: 280 65% 60%; /* Lavender */
+    --chart-5: 340 75% 55%; /* Magenta */
+  }
+}
+
+@layer base {
+  * {
+    @apply m-0 border-border;
+  }
+  body {
+    @apply flex min-h-screen min-w-80 flex-col bg-background text-foreground;
+  }
+  /* #root {
+    @apply flex flex-1 flex-col before:fixed before:-bottom-1 before:-left-1 before:-right-1 before:-top-1 before:-z-10 before:bg-[radial-gradient(#EB1B23C1_1px,transparent_1px)] before:content-[''] before:[background-size:34px_34px] before:[mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_60%,transparent_100%)];
+  } */
+  ::-webkit-scrollbar {
+    @apply h-2.5 w-2.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-[1px] border-solid border-transparent bg-border bg-clip-padding;
+  }
+}
+
+@layer utilities {
+  .border-glow {
+    background-image: radial-gradient(
+      200px circle at var(--mouse-x) var(--mouse-y),
+      hsl(var(--accent-foreground)),
+      transparent 99%
+    );
+  }
+
+  @media not all and (hover: hover) {
+    .border-glow {
+      background-image: none;
+      background-color: hsl(var(--border));
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
