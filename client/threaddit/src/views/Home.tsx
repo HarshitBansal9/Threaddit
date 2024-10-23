@@ -57,6 +57,10 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Post } from "@/lib/types";
+import PostCard from "@/components/posts/PostCard";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   username: z.string().min(2, {
@@ -67,9 +71,9 @@ const formSchema = z.object({
   }),
 });
 
-
 function Home() {
   const [images, setImages] = useState<(File | String)[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   function handleChange(e: any) {
     setImages([...images, URL.createObjectURL(e.target.files[0])]);
   }
@@ -91,7 +95,6 @@ function Home() {
   return (
     <div className="px-48 flex flex-row">
       <div className="w-1/4 pt-24">
-
         <Card className="w-full">
           <CardHeader className="flex flex-row items-center gap-4">
             <Avatar>
@@ -137,7 +140,6 @@ function Home() {
           </CardFooter>
         </Card>
 
-
         <div className="w-full flex justify-center pt-5">
           <Dialog>
             <DialogTrigger asChild>
@@ -165,7 +167,7 @@ function Home() {
                       <FormItem>
                         <FormLabel>Title</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your username" {...field} />
+                          <Input placeholder="Add a title" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -253,7 +255,22 @@ function Home() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <DialogClose asChild>
-                            <Button type="submit" variant="secondary">
+                            <Button
+                              onClick={() => {
+                                setPosts([
+                                  ...posts,
+                                  {
+                                    id: Math.random().toString(),
+                                    title: form.getValues("username"),
+                                    description: form.getValues("description"),
+                                    images: images,
+                                    timestamp: new Date(),
+                                  },
+                                ]);
+                              }}
+                              type="submit"
+                              variant="secondary"
+                            >
                               Post
                             </Button>
                           </DialogClose>
@@ -266,11 +283,22 @@ function Home() {
             </DialogContent>
           </Dialog>
         </div>
-
       </div>
-      <div className="w-1/2">
-
-      </div>
+     
+      <ScrollArea className="w-1/2 p-2 max-h-[100dvh] flex flex-col gap-4 overflow-auto ">
+        {posts.map((post: Post, index) => (
+          <PostCard
+            key={post.id}
+            id={post.id}
+            title={post.title}
+            description={post.description}
+            images={post.images}
+            timestamp={post.timestamp}
+            tags={post.tags}
+          ></PostCard>
+        ))}
+        <ScrollBar orientation="vertical" />
+        </ScrollArea>
       <div className="w-1/4 border-[1px]"></div>
     </div>
   );
