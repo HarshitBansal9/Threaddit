@@ -1,29 +1,59 @@
-import React, { useRef, useState } from "react";
+"use client";
 
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@radix-ui/react-menubar";
-import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Lock,
+  Search,
+  MoreVertical,
+  MessageSquare,
+  Heart,
+  Share2,
+  PlusCircle,
+} from "lucide-react";
+import PostCard from "@/components/posts/PostCard";
+import { title } from "process";
+import { time } from "console";
+import { Post } from "@/lib/types";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { formSchema } from "./Home";
 import { z } from "zod";
-
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,44 +66,56 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+// Mock data for rooms and posts
+const rooms = [
+  { id: 1, name: "Public Room 1", isPrivate: false, memberCount: 1500 },
+  { id: 2, name: "Private Room 1", isPrivate: true, memberCount: 50 },
+  { id: 3, name: "Public Room 2", isPrivate: false, memberCount: 3000 },
+  { id: 4, name: "Private Room 2", isPrivate: true, memberCount: 25 },
+];
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Post } from "@/lib/types";
-import PostCard from "@/components/posts/PostCard";
-import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { ScrollBar } from "@/components/ui/scroll-area";
+const postsTemp = [
+  {
+    id: "1",
+    title: "The Midnight Library",
+    images: [],
+    tags: [],
+    timestamp: new Date(),
+    description:
+      'Just finished reading an amazing book! Has anyone else read "The Midnight Library" by Matt Haig?',
+    time: "2 hours ago",
+    likes: 45,
+    comments: 12,
+  },
+  {
+    id: "2",
+    title: "Tech Conference",
+    images: [],
+    tags: [],
+    timestamp: new Date(),
+    description:
+      "Excited to announce that I'll be speaking at the upcoming tech conference next month! Who else is attending?",
+    time: "5 hours ago",
+    likes: 89,
+    comments: 24,
+  },
+  {
+    id: "3",
+    title: "Productivity Apps",
+    images: [],
+    tags: [],
+    timestamp: new Date(),
+    description:
+      "Does anyone have recommendations for good productivity apps? Looking to streamline my workflow.",
+    time: "1 day ago",
+    likes: 32,
+    comments: 18,
+  },
+];
 
-export const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-  description: z.string().min(10, {
-    message: "Description must be at least 10 characters.",
-  }),
-});
-
-function Home() {
+function Rooms() {
   const [images, setImages] = useState<(File | String)[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[]>(postsTemp);
   function handleChange(e: any) {
     setImages([...images, URL.createObjectURL(e.target.files[0])]);
   }
@@ -92,65 +134,77 @@ function Home() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
   }
-  return (
-    <div className="px-48 flex flex-row">
-      <div className="w-1/4 pt-24">
-        <Card className="w-full">
-          <CardHeader className="flex flex-row items-center gap-4">
-            <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <CardTitle className="text-md">Harshit Bansal</CardTitle>
-              <CardDescription className="text-sm">@shadcn</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col">
-            <Separator />
-            <div className="flex flex-row items-center w-full justify-evenly border-b-[1px] pb-3">
-              <div className="flex justify-center text-center flex-col">
-                <CardDescription className="text-sm">Followers</CardDescription>
-                <CardTitle className="text-lg">18</CardTitle>
-              </div>
-              <Separator />
-              <div className="flex justify-center text-center flex-col">
-                <CardDescription className="text-sm">Posts</CardDescription>
-                <CardTitle className="text-lg">2</CardTitle>
-              </div>
-              <Separator />
-              <div className="flex justify-center text-center flex-col">
-                <CardDescription className="text-sm">Rooms</CardDescription>
-                <CardTitle className="text-lg">8</CardTitle>
-              </div>
-            </div>
-            <Separator />
-            <div className="flex flex-col pt-3 justify-left gap-2 w-full border-b-[1px] pb-3">
-              <CardDescription className="text-sm">
-                Latest Activity:{" "}
-              </CardDescription>
-              <CardTitle className="text-md">Deploying a React App</CardTitle>
-            </div>
-          </CardContent>
-          <CardFooter className="flex pt-0 justify-between">
-            <CardDescription className="text-md hover:text-white">
-              Your Profile
-            </CardDescription>
-            <ChevronRight color="gray" className="w-6 h-6 ml-auto mr-3" />
-          </CardFooter>
-        </Card>
+  const [selectedRoom, setSelectedRoom] = useState(rooms[0]);
 
-        <div className="w-full flex justify-center pt-5">
+  return (
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <div className="w-1/4 border-r">
+        <div className="p-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search rooms" className="pl-8" />
+          </div>
+        </div>
+        <ScrollArea className="h-[calc(100vh-120px)]">
+          {rooms.map((room) => (
+            <div
+              key={room.id}
+              className={`flex items-center p-3 cursor-pointer hover:bg-muted ${
+                selectedRoom.id === room.id ? "bg-muted" : ""
+              }`}
+              onClick={() => setSelectedRoom(room)}
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage
+                  src={`https://api.dicebear.com/6.x/initials/svg?seed=${room.name}`}
+                />
+                <AvatarFallback>{room.name.slice(0, 2)}</AvatarFallback>
+              </Avatar>
+              <div className="ml-3 flex-1">
+                <div className="flex justify-between">
+                  <span className="font-semibold">{room.name}</span>
+                  {room.isPrivate && <Lock className="w-4 h-4" />}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {room.memberCount} members
+                </p>
+              </div>
+            </div>
+          ))}
+        </ScrollArea>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {/* Room header */}
+        <div className="p-4 bg-muted flex items-center justify-between">
+          <div className="flex items-center">
+            <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={`https://api.dicebear.com/6.x/initials/svg?seed=${selectedRoom.name}`}
+              />
+              <AvatarFallback>{selectedRoom.name.slice(0, 2)}</AvatarFallback>
+            </Avatar>
+            <div className="ml-3">
+              <h2 className="font-semibold">{selectedRoom.name}</h2>
+              <p className="text-xs text-muted-foreground">
+                {selectedRoom.isPrivate ? "Private Room" : "Public Room"} •{" "}
+                {selectedRoom.memberCount} members
+              </p>
+            </div>
+          </div>
+
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" className="px-12 py-8 text-xl w-full">
-                Create Public Post
+              <Button variant="outline" className="px-8 py-6 text-xl w-1/4">
+                Create Private Post
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Create a public post.</DialogTitle>
-                <DialogDescription>
+                <DialogTitle>Create a private post.</DialogTitle>
+                <DialogDescription> 
                   Create posts for everyone to see here. Click save when you're
                   done.
                 </DialogDescription>
@@ -283,25 +337,24 @@ function Home() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
-     
-      <ScrollArea className="w-1/2 p-2 max-h-[100dvh] flex flex-col gap-4 overflow-auto ">
-        {posts.map((post: Post, index) => (
-          <PostCard
-            key={post.id}
-            id={post.id}
-            title={post.title}
-            description={post.description}
-            images={post.images}
-            timestamp={post.timestamp}
-            tags={post.tags}
-          ></PostCard>
-        ))}
-        <ScrollBar orientation="vertical" />
+
+        {/* Posts */}
+        <ScrollArea className="flex-1 p-4">
+          {posts.map((post: Post, index) => (
+            <PostCard
+              key={post.id}
+              id={post.id}
+              title={post.title}
+              description={post.description}
+              images={post.images}
+              timestamp={post.timestamp}
+              tags={post.tags}
+            ></PostCard>
+          ))}
         </ScrollArea>
-      <div className="w-1/4 border-[1px]"></div>
+      </div>
     </div>
   );
 }
 
-export default Home;
+export default Rooms;
