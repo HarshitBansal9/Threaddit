@@ -1,5 +1,5 @@
-export const PROD = process.env.NODE_ENV === 'production'
-export const PORT = process.env.PORT || "9000"
+export const PROD = process.env.NODE_ENV === "production";
+export const PORT = process.env.PORT || "9000";
 
 const defaultPort = 5432;
 function normalizePort(val: string | undefined) {
@@ -20,3 +20,10 @@ export const CONFIG_PG = {
     database: process.env.DB_DB ?? "threaddit",
     ssl: false,
 };
+
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+export const JWT_SECRET = process.env.JWT_SECRET ?? "";
+
+export const UI_ROOT_URL = process.env.UI_ROOT_URL ?? "http://localhost:5173";
