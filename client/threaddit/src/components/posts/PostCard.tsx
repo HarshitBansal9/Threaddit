@@ -20,7 +20,7 @@ import {
 } from "../ui/carousel";
 function PostCard({ id, title, description, images, timestamp, tags }: Post) {
   return (
-    <Card className="w-full mx-auto">
+    <Card className="w-full mx-auto mb-4">
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar className="w-12 h-12">
           <AvatarImage

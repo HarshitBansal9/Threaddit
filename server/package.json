@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsx ./src/index.ts"
+    "dev": "npx tsx ./src/index.ts",
+    "migrate": "dotenv -e ./src/.env -- drizzle-kit migrate"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,7 @@
   "dependencies": {
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv-cli": "^7.4.2",
     "drizzle-orm": "^0.35.2",
     "express": "^4.21.1",
     "pg": "^8.13.0",

@@ -1,7 +1,3 @@
-
-
-
-
 export const PROD = process.env.NODE_ENV === 'production'
 export const PORT = process.env.PORT || "9000"
 
@@ -19,8 +15,8 @@ export const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 export const CONFIG_PG = {
     host: process.env.DB_HOST ?? "localhost",
     user: process.env.DB_USER ?? "admin",
-    password: process.env.DB_PASSWORD ?? "pass",
+    password: process.env.DB_PASSWORD ?? "postgres",
     port: normalizePort(process.env.DB_PORT),
-    database: "threaddit",
+    database: process.env.DB_DB ?? "threaddit",
     ssl: false,
 };

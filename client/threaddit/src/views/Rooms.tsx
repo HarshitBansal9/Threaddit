@@ -140,11 +140,18 @@ function Rooms() {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className="w-1/4 border-r">
-        <div className="p-2">
-          <div className="relative">
+        <div className="p-2 flex flex-row gap-2">
+          <div className="relative w-1/2">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search rooms" className="pl-8" />
           </div>
+          <Dialog>
+            <DialogTrigger asChild>
+            <Button variant="outline" className="text-lg w-1/2">
+                Create A Room
+              </Button>
+            </DialogTrigger>
+          </Dialog>
         </div>
         <ScrollArea className="h-[calc(100vh-120px)]">
           {rooms.map((room) => (
@@ -339,7 +346,7 @@ function Rooms() {
         </div>
 
         {/* Posts */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex flex-col p-4 gap-2">
           {posts.map((post: Post, index) => (
             <PostCard
               key={post.id}
