@@ -7,12 +7,16 @@ import querystring from "querystring";
 import jwt from "jsonwebtoken";
 import { AppError, HttpCode } from "./config/errors";
 import axios from "axios";
+import api from "./api";
 import {
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     JWT_SECRET,
     UI_ROOT_URL,
 } from "./config/environment";
+import expressAsyncHandler from "express-async-handler";
+import db from "./lib/db";
+import { users } from "./lib/db/schema/users";
 
 //parses incoming cookies and makes sure they are signed
 app.use(cookieParser());
@@ -46,7 +50,6 @@ function getGoogleAuthURL() {
 
 // Getting login URL
 app.get("/auth/google/url", (req, res) => {
-    console.log("reached here");
     res.send(getGoogleAuthURL());
 });
 
@@ -71,9 +74,9 @@ function getToken({
     const url = "https://oauth2.googleapis.com/token";
     const values = {
         code,
-        clientSecret: clientSecret,
-        clientId: clientId,
-        redirectURL: redirectURL,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectURL,
         grant_type: "authorization_code",
     };
     //sending the code + client secret in order to get the access token back
@@ -85,12 +88,12 @@ function getToken({
         })
         .then((res) => res.data)
         .catch((error) => {
-            console.error("Error while fetching token");
+            console.error(`Failed to fetch auth tokens`);
             throw new Error(error.message);
         });
 }
 
-//Getting the user data from google with the token
+//Getting the user  data from google with the token
 app.get(`/${redirectURL}`, async (req, res) => {
     const code = req.query.code as string;
 
@@ -116,18 +119,28 @@ app.get(`/${redirectURL}`, async (req, res) => {
             throw new Error(error.message);
         });
 
-    console.log(googleUser);
+    //adding a new user
+    const newUser = {
+        email: googleUser.email as string,
+        username: googleUser.name as string,
+        createdAt: new Date() as Date,
+    };
+
+    const data = await db
+        .insert(users)
+        .values(newUser)
+        .onConflictDoNothing({ target: users.email })
+        .returning();
+    console.log(data);
+    console.log("Google User: ", googleUser);
+
     const token = jwt.sign(googleUser, JWT_SECRET);
 
-    //storing the signed jwt in a cookie
-    res.cookie("userdata", token, {
-        maxAge: 900000,
-        httpOnly: true,
-        secure: false,
-    });
-
-    res.redirect(UI_ROOT_URL);
+    res.redirect(`${UI_ROOT_URL}/callback?token=${token}`);
 });
+
+app.use("/api", api);
+
 // catch 404
 app.use((_req, _res, next) => {
     next(
