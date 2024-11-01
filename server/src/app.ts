@@ -7,7 +7,7 @@ import querystring from "querystring";
 import jwt from "jsonwebtoken";
 import { AppError, HttpCode } from "./config/errors";
 import axios from "axios";
-import api from "./api";
+import api from "./routes";
 import {
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
@@ -138,6 +138,7 @@ app.get(`/${redirectURL}`, async (req, res) => {
 
     res.redirect(`${UI_ROOT_URL}/callback?token=${token}`);
 });
+
 
 app.use("/api", api);
 

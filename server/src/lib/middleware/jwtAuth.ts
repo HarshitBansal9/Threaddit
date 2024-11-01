@@ -12,7 +12,9 @@ const handler: express.RequestHandler = (req, res, next) => {
         if (!decoded) {
             throw new Error("unauthorized");
         }
-        
+
+        req.user = decoded as typeof req.user;
+        next();
     } catch (error) {
         res.status(401);
         throw error;

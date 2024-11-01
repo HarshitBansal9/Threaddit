@@ -23,7 +23,7 @@ import {
 import PostCard from "@/components/posts/PostCard";
 import { title } from "process";
 import { time } from "console";
-import { Post } from "@/lib/types";
+import { Post, User } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSchema } from "./Home";
@@ -116,6 +116,8 @@ const postsTemp = [
 function Rooms() {
     const [images, setImages] = useState<(File | String)[]>([]);
     const [posts, setPosts] = useState<Post[]>(postsTemp);
+    const [usersToBeAdded,setUsersToBeAdded] = useState<User[]>([])
+
     function handleChange(e: any) {
         setImages([...images, URL.createObjectURL(e.target.files[0])]);
     }
@@ -151,6 +153,20 @@ function Rooms() {
                                 Create A Room
                             </Button>
                         </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Create A Room
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Create A room here. You will automatically be made the admin.
+                                </DialogDescription>
+                            </DialogHeader>
+                            {/* <Form></Form> */}
+                            <DialogFooter>
+                                <Button type="submit">Save changes</Button>
+                            </DialogFooter>
+                        </DialogContent>
                     </Dialog>
                 </div>
                 <ScrollArea className="h-[calc(100vh-120px)]">

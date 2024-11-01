@@ -1,19 +1,19 @@
 import React, { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { axiosInstance } from "@/axios/axiosInstance";
+import { useAuthState } from "@/App";
 
 function CallBack() {
-    const navigate = useNavigate();
-    let [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const token = searchParams.get("token");
+    const { initAuthState } = useAuthState();
+
     if (token) {
-        axiosInstance.defaults.headers.jwt_token = token;
-        localStorage.setItem("jwtToken", token);
-        useEffect(() => {
-            navigate("/");
-        });
+        initAuthState(token);
+        return <Navigate to="/" />;
+    } else {
+        return <Navigate to="/login" />;
     }
-    return <div></div>;
 }
 
 export default CallBack;

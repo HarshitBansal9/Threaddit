@@ -57,11 +57,14 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Post } from "@/lib/types";
+import { Post, User } from "@/lib/types";
 import PostCard from "@/components/posts/PostCard";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { ScrollBar } from "@/components/ui/scroll-area";
+import useSWR from "swr";
 import { axiosInstance } from "@/axios/axiosInstance";
+import { useAtom } from "jotai";
+import { usersAtom } from "@/lib/atoms";
 
 export const formSchema = z.object({
     username: z.string().min(2, {
@@ -72,9 +75,25 @@ export const formSchema = z.object({
     }),
 });
 
+const useUsersList = () => {
+    const { data, error, isLoading } = useSWR("/api/users", fetcher);
+    const users = data?.data;
+    console.log(users);
+    return {
+        users: users ?? [],
+        isLoading,
+    };
+};
+
+export const fetcher = (url: string) =>
+    axiosInstance.get(url).then((res) => res.data);
+
 function Home() {
     const [images, setImages] = useState<(File | String)[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
+
+    const { users, isLoading } = useUsersList();
+
     function handleChange(e: any) {
         setImages([...images, URL.createObjectURL(e.target.files[0])]);
     }
@@ -348,7 +367,25 @@ function Home() {
                 ))}
                 <ScrollBar orientation="vertical" />
             </ScrollArea>
-            <div className="w-1/4 border-[1px]"></div>
+            <div className="w-1/4">
+                {isLoading ? (
+                    <div>Loading .......</div>
+                ) : (
+                    <div className="flex flex-col gap-2">
+                        <div className="pl-2 pt-2 text-2xl font-bold">Other users:</div>
+                        {users.map((user: User, index: number) => (
+                            <Card className="border-none w-full hover:">
+                                <CardHeader>
+                                    <CardTitle>{user.username}</CardTitle>
+                                    <CardDescription>
+                                        {user.email}
+                                    </CardDescription>
+                                </CardHeader>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
