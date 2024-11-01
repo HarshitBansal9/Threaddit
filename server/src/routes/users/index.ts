@@ -4,7 +4,7 @@ import jwtAuth from "@/lib/middleware/jwtAuth";
 const router = express.Router();
 
 export function ControllerRunner<B, R>(
-    controller: (user: any, body?: B) => R
+    controller: (user: any, body: B) => R
 ): express.RequestHandler {
     return async (req, res, next) => {
         try {
@@ -24,5 +24,7 @@ export function ControllerRunner<B, R>(
 router.use(jwtAuth);
 
 router.get("/", ControllerRunner(UserController.listUsers));
+
+router.get("/getuserdetails", ControllerRunner(UserController.getUserDetails));
 
 export default router;

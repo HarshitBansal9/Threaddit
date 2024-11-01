@@ -1,0 +1,25 @@
+import express from "express";
+
+import jwtAuth from "@/lib/middleware/jwtAuth";
+import { ControllerRunner } from "../users";
+
+import { PostController } from "@/controllers/posts";
+const router = express.Router();
+
+router.use(jwtAuth);
+
+router.post("/createpost", ControllerRunner(PostController.CreatePost));
+
+router.get("/getprivposts", ControllerRunner(PostController.GetPrivatePosts));
+
+router.get("/getpubposts", ControllerRunner(PostController.GetPublicPosts));
+
+
+router.get("/getpubposts", ControllerRunner(PostController.GetPublicPosts));
+
+router.get("/getpostcomments",ControllerRunner(PostController.GetPostComments));
+
+router.get("/createpostcomment",ControllerRunner(PostController.CreatePostComment));
+
+router.get("")
+export default router;
