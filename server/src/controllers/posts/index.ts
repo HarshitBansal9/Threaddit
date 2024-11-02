@@ -1,8 +1,10 @@
 import db from "@/lib/db";
 import { commentsTable } from "@/lib/db/schema/comments";
+import { imagesTable } from "@/lib/db/schema/images";
 import { likesTable } from "@/lib/db/schema/likes";
 import { postRoomsTable } from "@/lib/db/schema/postRooms";
 import { postsTable } from "@/lib/db/schema/posts";
+import { tagsTable } from "@/lib/db/schema/tags";
 import { users } from "@/lib/db/schema/users";
 import { and, eq } from "drizzle-orm";
 
@@ -34,26 +36,123 @@ interface Like {
     userId: number;
 }
 
+interface Image {
+    imageId?: number;
+    postId: number;
+    imageUrl: string;
+}
+
+interface Tag {
+    tagId?: number;
+    postId: number;
+    tagName: string;
+}
+
+function alterPosts(p: any) {
+    const postsAgg: { [key: string]: any } = {};
+    const imagesAgg: { [key: string]: any } = {};
+    const tagsAgg: { [key: string]: any } = {};
+
+    console.log(p);
+
+    p.forEach((postObj: any) => {
+        //deconstructing the post object
+        const { posts, images, tags, users } = postObj;
+
+
+        //checking if the post is already in the postsAgg object and if not adding it
+        if (posts && !postsAgg[posts.postId]) {
+            postsAgg[posts.postId] = posts;
+            postsAgg[posts.postId].imageUrls = [];
+            postsAgg[posts.postId].tags = [];
+            postsAgg[posts.postId]["userId"] = users?.id;
+            postsAgg[posts.postId]["username"] = users?.username;
+            postsAgg[posts.postId]["email"] = users?.email;
+        }
+
+        //checking if the images is already in the imagesAgg object and if not adding it
+        if (images && !imagesAgg[images.imageId]) {
+            imagesAgg[images.imageId] = images;
+        }
+
+        //checking if the tags is already in the tagsAgg object and if not adding it
+        if (tags && !tagsAgg[tags.tagId]) {
+            tagsAgg[tags.tagId] = tags;
+        }
+    });
+
+    console.log({
+        postsAgg,
+        imagesAgg,
+        tagsAgg,
+    });
+
+    //adding the imageUrls and tags to the postsAgg object as each image and tag is associated with a post with the postId
+    Object.values(imagesAgg).forEach((image: any) => {
+        postsAgg[image.postId].imageUrls.push(image.imageUrl);
+    });
+
+
+    //same agai for tags
+    Object.values(tagsAgg).forEach((tag: any) => {
+        postsAgg[tag.postId].tags.push(tag.tagName);
+    });
+
+    //returning the altered posts
+    return Object.values(postsAgg);
+}
+
 export class PostController {
     static CreatePost = async (
         user: any,
-        body: { post: Post; roomId: number }
+        body: { post: Post; roomId?: number; images: string[]; tags: string[] }
     ) => {
         try {
+            body.post.userId = user.id;
+            body.post.createdAt = new Date();
             const post = await db
                 .insert(postsTable)
                 .values(body.post)
                 .returning({ postId: postsTable.postId });
-            const postRoom: PostRoom = {
-                postId: post[0].postId,
-                roomId: body.roomId,
-            };
-            const postRoomsReturned = await db
-                .insert(postRoomsTable)
-                .values(postRoom)
-                .returning();
+
+            if (body.roomId) {
+                const postRoom: PostRoom = {
+                    postId: post[0].postId,
+                    roomId: body.roomId,
+                };
+                const postRoomsReturned = await db
+                    .insert(postRoomsTable)
+                    .values(postRoom)
+                    .returning();
+            }
+            //adding to images table
+            let images: Image[] = [];
+            body.images.forEach((image) => {
+                images.push({ postId: post[0].postId, imageUrl: image });
+            });
+
+            if (images.length) {
+                const imagesReturned = await db
+                    .insert(imagesTable)
+                    .values(images)
+                    .returning();
+            }
+
+            //adding to tags table
+            let tags: Tag[] = [];
+            body.tags.forEach((tag) => {
+                tags.push({ postId: post[0].postId, tagName: tag });
+            });
+
+            if (tags.length) {
+                const tagsReturned = await db
+                    .insert(tagsTable)
+                    .values(tags)
+                    .returning();
+            }
         } catch (error) {
             console.error("Error while creating post");
+            console.error(error);
         }
     };
 
@@ -67,12 +166,18 @@ export class PostController {
                     postRoomsTable,
                     eq(postsTable.postId, postRoomsTable.postId)
                 )
+                .innerJoin(
+                    imagesTable,
+                    eq(postsTable.postId, imagesTable.postId)
+                )
+                .innerJoin(tagsTable, eq(postsTable.postId, tagsTable.postId))
                 .innerJoin(users, eq(users.id, postsTable.userId))
                 .where(
                     and(eq(postsTable.isPublic, false), eq(users.email, email))
                 )
                 .execute();
-            return privatePosts;
+            const alteredPosts = alterPosts(privatePosts);
+            return alteredPosts;
         } catch (error) {
             console.error("Error while fetching private posts");
         }
@@ -83,17 +188,19 @@ export class PostController {
             const publicPosts = await db
                 .select()
                 .from(postsTable)
-                .innerJoin(
-                    postRoomsTable,
-                    eq(postsTable.postId, postRoomsTable.postId)
+                .leftJoin(
+                    imagesTable,
+                    eq(postsTable.postId, imagesTable.postId)
                 )
+                .leftJoin(tagsTable, eq(postsTable.postId, tagsTable.postId))
                 .innerJoin(users, eq(users.id, postsTable.userId))
                 .where(eq(postsTable.isPublic, true))
                 .execute();
-
-            return publicPosts;
+            const alteredPosts = alterPosts(publicPosts);
+            return alteredPosts;
         } catch (error) {
             console.error("Error while fetching public posts");
+            console.error(error);
         }
     };
 
@@ -140,7 +247,6 @@ export class PostController {
         }
     };
 
-    
     static CreatePostLike = async (user: any, body: { like: Like }) => {
         try {
             await db.insert(likesTable).values(body.like);

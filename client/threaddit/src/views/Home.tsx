@@ -57,14 +57,16 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Post, User } from "@/lib/types";
+import { AlteredPost, Post, User } from "@/lib/types";
 import PostCard from "@/components/posts/PostCard";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { ScrollBar } from "@/components/ui/scroll-area";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { axiosInstance } from "@/axios/axiosInstance";
 import { useAtom } from "jotai";
-import { usersAtom } from "@/lib/atoms";
+import { myUserAtom, usersAtom } from "@/lib/atoms";
+import { Checkbox } from "@/components/ui/checkbox";
+import { get } from "http";
 
 export const formSchema = z.object({
     username: z.string().min(2, {
@@ -75,14 +77,43 @@ export const formSchema = z.object({
     }),
 });
 
-const useUsersList = () => {
+export const useUsersList = () => {
     const { data, error, isLoading } = useSWR("/api/users", fetcher);
     const users = data?.data;
     console.log(users);
     return {
         users: users ?? [],
-        isLoading,
+        isUsersLoading: isLoading,
     };
+};
+
+const getPosts = () => {
+    const { data, error, isLoading } = useSWR(
+        "/api/posts/getpubposts",
+        fetcher
+    );
+    const posts = data?.data;
+    console.log(posts);
+    return {
+        publicPosts: posts ?? [],
+        isPostsLoading: isLoading,
+    };
+};
+
+const createPost = async (post: Post, images: string[], tags: string[]) => {
+    await axiosInstance
+        .post("/api/posts/createpost", {
+            post: post,
+            images: images,
+            tags: tags,
+        })
+        .then((res) => {
+            console.log(res);
+        })
+        .then((res) => {
+            console.log(res);
+            getPosts();
+        });
 };
 
 export const fetcher = (url: string) =>
@@ -90,9 +121,10 @@ export const fetcher = (url: string) =>
 
 function Home() {
     const [images, setImages] = useState<(File | String)[]>([]);
-    const [posts, setPosts] = useState<Post[]>([]);
-
-    const { users, isLoading } = useUsersList();
+    const [myUser, setMyUser] = useAtom(myUserAtom);
+    const [commentsEnabled, setCommentsEnabled] = useState<boolean>(false);
+    const { users, isUsersLoading } = useUsersList();
+    const { publicPosts, isPostsLoading } = getPosts();
 
     function handleChange(e: any) {
         setImages([...images, URL.createObjectURL(e.target.files[0])]);
@@ -272,24 +304,41 @@ function Home() {
                                             <div></div>
                                         )}
                                     </div>
-
-                                    <Input
-                                        type="file"
-                                        id="file"
-                                        ref={inputFile}
-                                        style={{ display: "none" }}
-                                        onChange={handleChange}
-                                    />
-                                    <Button onClick={onButtonClick}>
-                                        Attach Image
-                                    </Button>
-
+                                    <div className="flex flex-row gap-2">
+                                        <Input
+                                            type="file"
+                                            id="file"
+                                            ref={inputFile}
+                                            style={{ display: "none" }}
+                                            onChange={handleChange}
+                                        />
+                                        <Button onClick={onButtonClick}>
+                                            Attach Image
+                                        </Button>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="terms"
+                                                onCheckedChange={() => {
+                                                    setCommentsEnabled(
+                                                        !commentsEnabled
+                                                    );
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor="terms"
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                Enable Comments
+                                            </label>
+                                        </div>
+                                    </div>
                                     <DialogFooter>
                                         <DialogClose asChild>
                                             <Button
                                                 variant="outline"
                                                 onClick={() => {
                                                     setImages([]);
+                                                    form.reset();
                                                 }}
                                             >
                                                 Cancel
@@ -319,10 +368,12 @@ function Home() {
                                                     <DialogClose asChild>
                                                         <Button
                                                             onClick={() => {
-                                                                setPosts([
-                                                                    ...posts,
+                                                                createPost(
                                                                     {
-                                                                        id: Math.random().toString(),
+                                                                        userId:
+                                                                            myUser?.id ??
+                                                                            0,
+
                                                                         title: form.getValues(
                                                                             "username"
                                                                         ),
@@ -330,11 +381,24 @@ function Home() {
                                                                             form.getValues(
                                                                                 "description"
                                                                             ),
-                                                                        images: images,
-                                                                        timestamp:
+                                                                        createdAt:
                                                                             new Date(),
+                                                                        isPublic:
+                                                                            true,
+                                                                        commentsEnabled:
+                                                                            commentsEnabled,
                                                                     },
-                                                                ]);
+                                                                    images.map(
+                                                                        (
+                                                                            image
+                                                                        ) => {
+                                                                            return image as string;
+                                                                        }
+                                                                    ),
+                                                                    []
+                                                                );
+                                                                setImages([]);
+                                                                form.reset();
                                                             }}
                                                             type="submit"
                                                             variant="secondary"
@@ -354,27 +418,41 @@ function Home() {
             </div>
 
             <ScrollArea className="w-1/2 p-2 max-h-[100dvh] flex flex-col gap-4 overflow-auto ">
-                {posts.map((post: Post, index) => (
-                    <PostCard
-                        key={post.id}
-                        id={post.id}
-                        title={post.title}
-                        description={post.description}
-                        images={post.images}
-                        timestamp={post.timestamp}
-                        tags={post.tags}
-                    ></PostCard>
-                ))}
+                {isPostsLoading ? (
+                    <div>Loading.......</div>
+                ) : (
+                    publicPosts.map((post: AlteredPost, index: number) => (
+                        <PostCard
+                            key={index}
+                            postId={post.postId}
+                            userId={post.userId}
+                            username={post.username}
+                            email={post.email}
+                            isPublic={post.isPublic}
+                            commentsEnabled={post.commentsEnabled}
+                            title={post.title}
+                            description={post.description}
+                            imageUrls={post.imageUrls}
+                            createdAt={post.createdAt}
+                            tags={post.tags}
+                        ></PostCard>
+                    ))
+                )}
                 <ScrollBar orientation="vertical" />
             </ScrollArea>
             <div className="w-1/4">
-                {isLoading ? (
+                {isUsersLoading ? (
                     <div>Loading .......</div>
                 ) : (
                     <div className="flex flex-col gap-2">
-                        <div className="pl-2 pt-2 text-2xl font-bold">Other users:</div>
+                        <div className="pl-2 pt-2 text-2xl font-bold">
+                            Other users:
+                        </div>
                         {users.map((user: User, index: number) => (
-                            <Card className="border-none w-full hover:">
+                            <Card
+                                key={index}
+                                className="border-none w-full hover:"
+                            >
                                 <CardHeader>
                                     <CardTitle>{user.username}</CardTitle>
                                     <CardDescription>

@@ -6,7 +6,7 @@ import {
     useNavigate,
 } from "react-router-dom";
 import Navbar from "./components/nav/Navbar";
-import Home from "./views/Home";
+import Home, { fetcher } from "./views/Home";
 import Rooms from "./views/Rooms";
 import Login from "./views/Login";
 import CallBack from "./views/CallBack";
@@ -15,6 +15,8 @@ import { useCallback, useEffect, useState } from "react";
 import { atom, useAtom } from "jotai";
 import { axiosInstance } from "./axios/axiosInstance";
 import { Loader } from "lucide-react";
+import { myUserAtom } from "./lib/atoms";
+import { set } from "react-hook-form";
 
 
 //initial state before any page loads
@@ -24,12 +26,10 @@ const auth = atom({
     isLoggedIn: false,
 });
 
-const sleep = (timeout: number) =>
-    new Promise((resolve) => setTimeout(resolve, timeout));
-
 export function useAuthState() {
     const [authState, setAuthState] = useAtom(auth);
     const { token, isLoggedIn } = authState;
+    const [myUser,setMyUser] = useAtom(myUserAtom);
 
     const LOCAL_STORAGE_TOKEN_KEY = "jwtToken";
 
@@ -41,8 +41,6 @@ export function useAuthState() {
                 isLoggedIn: false,
             });
 
-            //here will be the get user profile route ,try catch and call logout in case of error (as that means the token is not verified).
-            await sleep(2000);
             // Store the token in localStorage
             localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, token);
             // Set the JWT token in Axios default headers
@@ -50,6 +48,20 @@ export function useAuthState() {
                 "Authorization"
             ] = `Bearer ${token}`;
 
+            //here will be the get user profile route ,try catch and call logout in case of error (as that means the token is not verified).
+            try {
+                const response = await axiosInstance.get(
+                    "api/users/getmydetails"
+                );
+                setMyUser(response.data.data[0]);
+                console.log("MY details", response.data);
+                setAuthState({
+                    token,
+                    isLoggedIn: true,
+                });
+            } catch (error) {
+                logout();
+            }
 
             //setting authState to loggedIn
             setAuthState({
@@ -74,6 +86,14 @@ export function useAuthState() {
 
     //for the case when you refresh the page as isLoggedIn will be set to false again
     useEffect(() => {
+        axiosInstance.interceptors.response.use(
+        ), function (error:any) {
+            console.log("error", error);
+            if (error.response.status === 401) {
+                logout();
+            }
+            return Promise.reject(error);
+        }
         if (token && !isLoggedIn) {
             initAuthState(token);
         }

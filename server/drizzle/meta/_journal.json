@@ -29,6 +29,20 @@
       "when": 1730480119370,
       "tag": "0003_exotic_drax",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1730485422353,
+      "tag": "0004_curvy_hex",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1730490084110,
+      "tag": "0005_thin_the_spike",
+      "breakpoints": true
     }
   ]
 }

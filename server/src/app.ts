@@ -17,6 +17,7 @@ import {
 import expressAsyncHandler from "express-async-handler";
 import db from "./lib/db";
 import { users } from "./lib/db/schema/users";
+import { eq } from "drizzle-orm";
 
 //parses incoming cookies and makes sure they are signed
 app.use(cookieParser());
@@ -126,19 +127,29 @@ app.get(`/${redirectURL}`, async (req, res) => {
         createdAt: new Date() as Date,
     };
 
-    const data = await db
+    await db
         .insert(users)
         .values(newUser)
-        .onConflictDoNothing({ target: users.email })
-        .returning();
+        .onConflictDoNothing({ target: users.email });
+
+    const data = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, googleUser.email))
+        .execute();
     console.log(data);
     console.log("Google User: ", googleUser);
 
-    const token = jwt.sign(googleUser, JWT_SECRET);
+    const token = jwt.sign(
+        {
+            ...googleUser,
+            id: data[0].id,
+        },
+        JWT_SECRET
+    );
 
     res.redirect(`${UI_ROOT_URL}/callback?token=${token}`);
 });
-
 
 app.use("/api", api);
 

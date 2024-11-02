@@ -26,7 +26,7 @@ import { time } from "console";
 import { Post, User } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { formSchema } from "./Home";
+import { formSchema, useUsersList } from "./Home";
 import { z } from "zod";
 import {
     Dialog,
@@ -41,6 +41,7 @@ import {
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -65,6 +66,10 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { myUserAtom } from "@/lib/atoms";
+import { useAtom } from "jotai";
+import { Checkbox } from "@/components/ui/checkbox";
+import { axiosInstance } from "@/axios/axiosInstance";
 
 // Mock data for rooms and posts
 const rooms = [
@@ -74,49 +79,43 @@ const rooms = [
     { id: 4, name: "Private Room 2", isPrivate: true, memberCount: 25 },
 ];
 
-const postsTemp = [
-    {
-        id: "1",
-        title: "The Midnight Library",
-        images: [],
-        tags: [],
-        timestamp: new Date(),
-        description:
-            'Just finished reading an amazing book! Has anyone else read "The Midnight Library" by Matt Haig?',
-        time: "2 hours ago",
-        likes: 45,
-        comments: 12,
-    },
-    {
-        id: "2",
-        title: "Tech Conference",
-        images: [],
-        tags: [],
-        timestamp: new Date(),
-        description:
-            "Excited to announce that I'll be speaking at the upcoming tech conference next month! Who else is attending?",
-        time: "5 hours ago",
-        likes: 89,
-        comments: 24,
-    },
-    {
-        id: "3",
-        title: "Productivity Apps",
-        images: [],
-        tags: [],
-        timestamp: new Date(),
-        description:
-            "Does anyone have recommendations for good productivity apps? Looking to streamline my workflow.",
-        time: "1 day ago",
-        likes: 32,
-        comments: 18,
-    },
-];
+const roomFormSchema = z.object({
+    roomName: z.string().min(2, {
+        message: "Room name must be at least 2 characters long",
+    }),
+});
+
+async function createRoom(
+    users: (User | null)[],
+    roomName: string,
+    myUser: User | null
+) {
+    console.log("Room name", roomName);
+    await axiosInstance.post("/api/rooms/createroom", {
+        room: {
+            roomName: roomName,
+            createdAt: new Date(),
+            createdBy: myUser?.id,
+        },
+        users: users,
+    });
+    console.log("Users getting added to the room", users);
+}
+
+const getRooms = async () => {
+    
+}
 
 function Rooms() {
     const [images, setImages] = useState<(File | String)[]>([]);
-    const [posts, setPosts] = useState<Post[]>(postsTemp);
-    const [usersToBeAdded,setUsersToBeAdded] = useState<User[]>([])
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [myUser, setMyUser] = useAtom(myUserAtom);
+    let myUserForRoom: any = myUser;
+    myUserForRoom.isAdmin = true;
+    const [usersToBeAdded, setUsersToBeAdded] = useState<any[]>([
+        myUserForRoom,
+    ]);
+    const { users, isUsersLoading } = useUsersList();
 
     function handleChange(e: any) {
         setImages([...images, URL.createObjectURL(e.target.files[0])]);
@@ -125,6 +124,13 @@ function Rooms() {
     const onButtonClick = () => {
         inputFile.current?.click();
     };
+    const roomForm = useForm<z.infer<typeof roomFormSchema>>({
+        resolver: zodResolver(roomFormSchema),
+        defaultValues: {
+            roomName: "",
+        },
+    });
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -155,16 +161,94 @@ function Rooms() {
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>
-                                    Create A Room
-                                </DialogTitle>
+                                <DialogTitle>Create A Room</DialogTitle>
                                 <DialogDescription>
-                                    Create A room here. You will automatically be made the admin.
+                                    Create A room here. You will automatically
+                                    be made the admin.
                                 </DialogDescription>
                             </DialogHeader>
-                            {/* <Form></Form> */}
+                            <Form {...roomForm}>
+                                <form
+                                    onSubmit={roomForm.handleSubmit(() => {
+                                        console.log("form submitted");
+                                    })}
+                                    className="space-y-8"
+                                >
+                                    <FormField
+                                        control={roomForm.control}
+                                        name="roomName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Room Name</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="Add a room name"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {users.map((user: User) => (
+                                        <div
+                                            key={user.id}
+                                            className="flex items-center"
+                                        >
+                                            <Checkbox
+                                                checked={usersToBeAdded.includes(
+                                                    user
+                                                )}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        let userToBeAdded: any =
+                                                            user;
+                                                        userToBeAdded.isAdmin =
+                                                            false;
+                                                        setUsersToBeAdded([
+                                                            ...usersToBeAdded,
+                                                            userToBeAdded,
+                                                        ]);
+                                                    } else {
+                                                        setUsersToBeAdded(
+                                                            usersToBeAdded.filter(
+                                                                (u) =>
+                                                                    u !== user
+                                                            )
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                            <span className="ml-2">
+                                                {user.username}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </form>
+                            </Form>
+
                             <DialogFooter>
-                                <Button type="submit">Save changes</Button>
+                                <Button
+                                    onClick={() => {
+                                        roomForm.handleSubmit((data) => {
+                                            roomForm.reset();
+                                            if (usersToBeAdded.length === 1) {
+                                                alert(
+                                                    "Please add at least one user to the room"
+                                                );
+                                            } else {
+                                                createRoom(
+                                                    usersToBeAdded,
+                                                    data.roomName,
+                                                    myUser
+                                                );
+                                            }
+                                        })();
+                                    }}
+                                    type="submit"
+                                >
+                                    Create Room
+                                </Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -370,24 +454,24 @@ function Rooms() {
                                                     </AlertDialogCancel>
                                                     <DialogClose asChild>
                                                         <Button
-                                                            onClick={() => {
-                                                                setPosts([
-                                                                    ...posts,
-                                                                    {
-                                                                        id: Math.random().toString(),
-                                                                        title: form.getValues(
-                                                                            "username"
-                                                                        ),
-                                                                        description:
-                                                                            form.getValues(
-                                                                                "description"
-                                                                            ),
-                                                                        images: images,
-                                                                        timestamp:
-                                                                            new Date(),
-                                                                    },
-                                                                ]);
-                                                            }}
+                                                            // onClick={() => {
+                                                            //     setPosts([
+                                                            //         ...posts,
+                                                            //         {
+                                                            //             id: Math.random().toString(),
+                                                            //             title: form.getValues(
+                                                            //                 "username"
+                                                            //             ),
+                                                            //             description:
+                                                            //                 form.getValues(
+                                                            //                     "description"
+                                                            //                 ),
+                                                            //             images: images,
+                                                            //             timestamp:
+                                                            //                 new Date(),
+                                                            //         },
+                                                            //     ]);
+                                                            // }}
                                                             type="submit"
                                                             variant="secondary"
                                                         >
@@ -405,7 +489,7 @@ function Rooms() {
                 </div>
 
                 {/* Posts */}
-                <ScrollArea className="flex flex-col p-4 gap-2">
+                {/* <ScrollArea className="flex flex-col p-4 gap-2">
                     {posts.map((post: Post, index) => (
                         <PostCard
                             key={post.id}
@@ -417,7 +501,7 @@ function Rooms() {
                             tags={post.tags}
                         ></PostCard>
                     ))}
-                </ScrollArea>
+                </ScrollArea> */}
             </div>
         </div>
     );

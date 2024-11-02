@@ -1,5 +1,5 @@
 import React from "react";
-import { Post } from "@/lib/types";
+import { AlteredPost } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -18,7 +18,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../ui/carousel";
-function PostCard({ id, title, description, images, timestamp, tags }: Post) {
+function PostCard({ postId,userId,username,email, title, description, imageUrls, createdAt, tags,commentsEnabled }:AlteredPost) {
   return (
     <Card className="w-full mx-auto mb-4">
       <CardHeader className="flex flex-row items-center gap-4">
@@ -30,17 +30,17 @@ function PostCard({ id, title, description, images, timestamp, tags }: Post) {
           <AvatarFallback>JD</AvatarFallback>
         </Avatar>
         <div className="flex flex-col">
-          <h2 className="text-lg font-semibold">Harshit Bansal</h2>
-          <p className="text-sm text-muted-foreground">bansalharshit032@gmail.com</p>
+          <h2 className="text-lg font-semibold">{username}</h2>
+          <p className="text-sm text-muted-foreground">{email}</p>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <h3 className="text-xl font-bold">{title}</h3>
         <p className="text-muted-foreground">{description}</p>
-        {images ? (
-          images.length < 3 ? (
-            <div className={`grid grid-cols-${images.length} gap-2 `}>
-              {images?.map((image, index) => (
+        {imageUrls ? (
+          imageUrls.length < 3 ? (
+            <div className={`grid grid-cols-${imageUrls.length} gap-2 `}>
+              {imageUrls?.map((image, index) => (
                 <img key={index} src={image as string} alt="image" className="max-h-"/>
               ))}
             </div>
@@ -48,7 +48,7 @@ function PostCard({ id, title, description, images, timestamp, tags }: Post) {
             <div className="w-full flex justify-center px-8">
               <Carousel className="flex justify-center">
                 <CarouselContent>
-                  {images.map((image, index) => (
+                  {imageUrls.map((image, index) => (
                     <CarouselItem key={index}>
                       <div>
                         <Card>

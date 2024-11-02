@@ -5,7 +5,7 @@ import { users } from "@/lib/db/schema/users";
 import { and, eq } from "drizzle-orm";
 
 interface Room {
-    roomId: number;
+    roomId?: number;
     roomName: string;
     createdAt: Date;
     createdBy: number;
@@ -19,6 +19,7 @@ interface roomMember {
 export class RoomController {
     static CreateRoom = async (user: any, body: { room: Room; users: any }) => {
         try {
+            body.room.createdAt = new Date();
             const roomId = await db
                 .insert(roomsTable)
                 .values(body.room)
@@ -40,6 +41,7 @@ export class RoomController {
             console.log(usersReturned);
         } catch (error) {
             console.error("Error while creating a room");
+            console.error(error);
         }
     };
 
