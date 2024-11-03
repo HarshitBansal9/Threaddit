@@ -52,13 +52,13 @@ function alterPosts(p: any) {
     const postsAgg: { [key: string]: any } = {};
     const imagesAgg: { [key: string]: any } = {};
     const tagsAgg: { [key: string]: any } = {};
+    const roomsAgg: { [key: string]: any } = {};
 
     console.log(p);
 
     p.forEach((postObj: any) => {
         //deconstructing the post object
-        const { posts, images, tags, users } = postObj;
-
+        const { posts, images, tags, users, rooms } = postObj;
 
         //checking if the post is already in the postsAgg object and if not adding it
         if (posts && !postsAgg[posts.postId]) {
@@ -68,6 +68,7 @@ function alterPosts(p: any) {
             postsAgg[posts.postId]["userId"] = users?.id;
             postsAgg[posts.postId]["username"] = users?.username;
             postsAgg[posts.postId]["email"] = users?.email;
+            postsAgg[posts.postId]["roomId"] = rooms?.roomId;
         }
 
         //checking if the images is already in the imagesAgg object and if not adding it
@@ -86,7 +87,7 @@ function alterPosts(p: any) {
         imagesAgg,
         tagsAgg,
     });
-
+    
     //adding the imageUrls and tags to the postsAgg object as each image and tag is associated with a post with the postId
     Object.values(imagesAgg).forEach((image: any) => {
         postsAgg[image.postId].imageUrls.push(image.imageUrl);
@@ -156,7 +157,7 @@ export class PostController {
         }
     };
 
-    static GetPrivatePosts = async (user: any, body: {}) => {
+    static GetPrivatePosts = async (user: any, body: {},query:{roomId:number}) => {
         try {
             const email = user?.email;
             const privatePosts = await db
@@ -166,14 +167,14 @@ export class PostController {
                     postRoomsTable,
                     eq(postsTable.postId, postRoomsTable.postId)
                 )
-                .innerJoin(
+                .leftJoin(
                     imagesTable,
                     eq(postsTable.postId, imagesTable.postId)
                 )
-                .innerJoin(tagsTable, eq(postsTable.postId, tagsTable.postId))
+                .leftJoin(tagsTable, eq(postsTable.postId, tagsTable.postId))
                 .innerJoin(users, eq(users.id, postsTable.userId))
                 .where(
-                    and(eq(postsTable.isPublic, false), eq(users.email, email))
+                    and(eq(postsTable.isPublic, false), eq(postRoomsTable.roomId, query.roomId))
                 )
                 .execute();
             const alteredPosts = alterPosts(privatePosts);

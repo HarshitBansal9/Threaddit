@@ -9,6 +9,7 @@ router.use(jwtAuth);
 
 router.post("/createroom", ControllerRunner(RoomController.CreateRoom));
 
-router.get("/getroom", ControllerRunner(RoomController.GetRooms));
+router.get("/getrooms", ControllerRunner(RoomController.GetRooms));
+
 
 export default router;

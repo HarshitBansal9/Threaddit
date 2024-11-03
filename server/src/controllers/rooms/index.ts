@@ -57,6 +57,8 @@ export class RoomController {
                 )
                 .innerJoin(users, eq(users.id, membersTable.userId))
                 .where(eq(users.email, email));
+
+            return rooms;
         } catch (error) {
             console.error("Error while getting the users rooms");
         }

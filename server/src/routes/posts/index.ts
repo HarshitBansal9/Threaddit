@@ -10,16 +10,22 @@ router.use(jwtAuth);
 
 router.post("/createpost", ControllerRunner(PostController.CreatePost));
 
-router.get("/getprivposts", ControllerRunner(PostController.GetPrivatePosts));
-
 router.get("/getpubposts", ControllerRunner(PostController.GetPublicPosts));
 
+router.get(
+    "/postsforroom",
+    ControllerRunner(PostController.GetPrivatePosts)
+);
 
-router.get("/getpubposts", ControllerRunner(PostController.GetPublicPosts));
+router.get(
+    "/getpostcomments",
+    ControllerRunner(PostController.GetPostComments)
+);
 
-router.get("/getpostcomments",ControllerRunner(PostController.GetPostComments));
+router.get(
+    "/createpostcomment",
+    ControllerRunner(PostController.CreatePostComment)
+);
 
-router.get("/createpostcomment",ControllerRunner(PostController.CreatePostComment));
-
-router.get("")
+router.get("");
 export default router;

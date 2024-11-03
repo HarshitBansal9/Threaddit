@@ -23,10 +23,10 @@ import {
 import PostCard from "@/components/posts/PostCard";
 import { title } from "process";
 import { time } from "console";
-import { Post, User } from "@/lib/types";
+import { AlteredPost, Post, User } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { formSchema, useUsersList } from "./Home";
+import { fetcher, formSchema, useUsersList } from "./Home";
 import { z } from "zod";
 import {
     Dialog,
@@ -70,14 +70,7 @@ import { myUserAtom } from "@/lib/atoms";
 import { useAtom } from "jotai";
 import { Checkbox } from "@/components/ui/checkbox";
 import { axiosInstance } from "@/axios/axiosInstance";
-
-// Mock data for rooms and posts
-const rooms = [
-    { id: 1, name: "Public Room 1", isPrivate: false, memberCount: 1500 },
-    { id: 2, name: "Private Room 1", isPrivate: true, memberCount: 50 },
-    { id: 3, name: "Public Room 2", isPrivate: false, memberCount: 3000 },
-    { id: 4, name: "Private Room 2", isPrivate: true, memberCount: 25 },
-];
+import useSWR from "swr";
 
 const roomFormSchema = z.object({
     roomName: z.string().min(2, {
@@ -102,14 +95,54 @@ async function createRoom(
     console.log("Users getting added to the room", users);
 }
 
-const getRooms = async () => {
-    
-}
+const getRooms = () => {
+    const { data, error, isLoading } = useSWR("/api/rooms/getrooms", fetcher);
+    const rooms = data?.data;
+    console.log("Rooms", rooms);
+    return {
+        rooms: rooms ?? [],
+        isRoomsLoading: isLoading,
+    };
+};
+const getPostsForRoom = async (roomId: string) => {
+    try {
+        const data = await axiosInstance.get("/api/posts/postsforroom", {
+            params: { roomId },
+        });
+        console.log("Posts for room", data.data);
+        return data.data;
+    } catch (error) {
+        console.error(error);
+    }
+};
+const createPost = async (
+    post: Post,
+    images: string[],
+    tags: string[],
+    roomId: string
+) => {
+    await axiosInstance
+        .post("/api/posts/createpost", {
+            post: post,
+            images: images,
+            tags: tags,
+            roomId: roomId,
+        })
+        .then((res) => {
+            console.log(res);
+        })
+        .then((res) => {
+            console.log(res);
+            getPostsForRoom(roomId);
+        });
+};
 
 function Rooms() {
     const [images, setImages] = useState<(File | String)[]>([]);
-    const [posts, setPosts] = useState<Post[]>([]);
+    const [posts, setPosts] = useState<any[]>([]);
     const [myUser, setMyUser] = useAtom(myUserAtom);
+    const { rooms, isRoomsLoading } = getRooms();
+    const [commentsEnabled, setCommentsEnabled] = useState<boolean>(false);
     let myUserForRoom: any = myUser;
     myUserForRoom.isAdmin = true;
     const [usersToBeAdded, setUsersToBeAdded] = useState<any[]>([
@@ -142,7 +175,7 @@ function Rooms() {
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
     }
-    const [selectedRoom, setSelectedRoom] = useState(rooms[0]);
+    const [selectedRoom, setSelectedRoom] = useState<any>(null);
 
     return (
         <div className="flex h-screen bg-background">
@@ -254,34 +287,38 @@ function Rooms() {
                     </Dialog>
                 </div>
                 <ScrollArea className="h-[calc(100vh-120px)]">
-                    {rooms.map((room) => (
+                    {rooms.map((room: any) => (
                         <div
-                            key={room.id}
+                            key={room.rooms.roomId}
                             className={`flex items-center p-3 cursor-pointer hover:bg-muted ${
-                                selectedRoom.id === room.id ? "bg-muted" : ""
+                                selectedRoom?.rooms.roomId === room.rooms.roomId
+                                    ? "bg-muted"
+                                    : ""
                             }`}
-                            onClick={() => setSelectedRoom(room)}
+                            onClick={async () => {
+                                setSelectedRoom(room);
+                                const posts = await getPostsForRoom(
+                                    room.rooms.roomId
+                                );
+                                console.log("Posts for room", posts.data);
+                                setPosts(posts.data);
+                            }}
                         >
+                            
                             <Avatar className="h-10 w-10">
                                 <AvatarImage
-                                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${room.name}`}
+                                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${room.rooms.roomName}`}
                                 />
                                 <AvatarFallback>
-                                    {room.name.slice(0, 2)}
+                                    {room.rooms.roomName.slice(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="ml-3 flex-1">
                                 <div className="flex justify-between">
                                     <span className="font-semibold">
-                                        {room.name}
+                                        {room.rooms.roomName}
                                     </span>
-                                    {room.isPrivate && (
-                                        <Lock className="w-4 h-4" />
-                                    )}
                                 </div>
-                                <p className="text-sm text-muted-foreground">
-                                    {room.memberCount} members
-                                </p>
                             </div>
                         </div>
                     ))}
@@ -289,220 +326,264 @@ function Rooms() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col">
-                {/* Room header */}
-                <div className="p-4 bg-muted flex items-center justify-between">
-                    <div className="flex items-center">
-                        <Avatar className="h-10 w-10">
-                            <AvatarImage
-                                src={`https://api.dicebear.com/6.x/initials/svg?seed=${selectedRoom.name}`}
-                            />
-                            <AvatarFallback>
-                                {selectedRoom.name.slice(0, 2)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="ml-3">
-                            <h2 className="font-semibold">
-                                {selectedRoom.name}
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                                {selectedRoom.isPrivate
-                                    ? "Private Room"
-                                    : "Public Room"}{" "}
-                                • {selectedRoom.memberCount} members
-                            </p>
+            {selectedRoom != null ? (
+                <div className="flex-1 flex flex-col">
+                    {/* Room header */}
+                    <div className="p-4 bg-muted flex items-center justify-between">
+                        <div className="flex items-center">
+                            <Avatar className="h-10 w-10">
+                                <AvatarImage
+                                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${selectedRoom.rooms.roomName}`}
+                                />
+                                <AvatarFallback>
+                                    {selectedRoom.rooms.roomName.slice(0, 2)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="ml-3">
+                                <h2 className="font-semibold">
+                                    {selectedRoom.rooms.roomName}
+                                </h2>
+                            </div>
                         </div>
+
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="px-8 py-6 text-xl w-1/4"
+                                >
+                                    Create Private Post
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        Create a private post.
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Create posts for everyone to see here.
+                                        Click save when you're done.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <Form {...form}>
+                                    <form
+                                        onSubmit={form.handleSubmit(onSubmit)}
+                                        className="space-y-8"
+                                    >
+                                        <FormField
+                                            control={form.control}
+                                            name="username"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Title</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="Add a title"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Description
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Enter your description here"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="w-full flex justify-center">
+                                            {images.length > 0 ? (
+                                                <Carousel className="w-full max-w-xs flex justify-center">
+                                                    <CarouselContent>
+                                                        {images.map(
+                                                            (image, index) => (
+                                                                <CarouselItem
+                                                                    key={index}
+                                                                >
+                                                                    <div>
+                                                                        <Card>
+                                                                            <CardContent className="flex items-center justify-center h-48  pb-6 pt-6">
+                                                                                <img
+                                                                                    key={
+                                                                                        index
+                                                                                    }
+                                                                                    src={
+                                                                                        image as string
+                                                                                    }
+                                                                                    alt="image"
+                                                                                    className="max-h-48 min-h-24"
+                                                                                />
+                                                                            </CardContent>
+                                                                        </Card>
+                                                                    </div>
+                                                                </CarouselItem>
+                                                            )
+                                                        )}
+                                                    </CarouselContent>
+                                                    <CarouselPrevious />
+                                                    <CarouselNext />
+                                                </Carousel>
+                                            ) : (
+                                                <div></div>
+                                            )}
+                                        </div>
+
+                                        <Input
+                                            type="file"
+                                            id="file"
+                                            ref={inputFile}
+                                            style={{ display: "none" }}
+                                            onChange={handleChange}
+                                        />
+                                        <Button onClick={onButtonClick}>
+                                            Attach Image
+                                        </Button>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="terms"
+                                                onCheckedChange={() => {
+                                                    setCommentsEnabled(
+                                                        !commentsEnabled
+                                                    );
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor="terms"
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                Enable Comments
+                                            </label>
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setImages([]);
+                                                        form.reset();
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </DialogClose>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="outline">
+                                                        Save Post
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>
+                                                            Are you absolutely
+                                                            sure?
+                                                        </AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This action cannot
+                                                            be undone. This will
+                                                            permanently post.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>
+                                                            Cancel
+                                                        </AlertDialogCancel>
+                                                        <DialogClose asChild>
+                                                            <Button
+                                                                onClick={() => {
+                                                                    createPost(
+                                                                        {
+                                                                            userId:
+                                                                                myUser?.id ??
+                                                                                0,
+
+                                                                            title: form.getValues(
+                                                                                "username"
+                                                                            ),
+                                                                            description:
+                                                                                form.getValues(
+                                                                                    "description"
+                                                                                ),
+                                                                            createdAt:
+                                                                                new Date(),
+                                                                            isPublic:
+                                                                                false,
+                                                                            commentsEnabled:
+                                                                                commentsEnabled,
+                                                                        },
+                                                                        images.map(
+                                                                            (
+                                                                                image
+                                                                            ) => {
+                                                                                return image as string;
+                                                                            }
+                                                                        ),
+                                                                        [],
+                                                                        selectedRoom
+                                                                            .rooms
+                                                                            .roomId
+                                                                    );
+                                                                    setImages(
+                                                                        []
+                                                                    );
+                                                                    form.reset();
+                                                                }}
+                                                                type="submit"
+                                                                variant="secondary"
+                                                            >
+                                                                Post
+                                                            </Button>
+                                                        </DialogClose>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
                     </div>
 
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="px-8 py-6 text-xl w-1/4"
-                            >
-                                Create Private Post
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>
-                                    Create a private post.
-                                </DialogTitle>
-                                <DialogDescription>
-                                    Create posts for everyone to see here. Click
-                                    save when you're done.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <Form {...form}>
-                                <form
-                                    onSubmit={form.handleSubmit(onSubmit)}
-                                    className="space-y-8"
-                                >
-                                    <FormField
-                                        control={form.control}
-                                        name="username"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Title</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="Add a title"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Description
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        placeholder="Enter your description here"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="w-full flex justify-center">
-                                        {images.length > 0 ? (
-                                            <Carousel className="w-full max-w-xs flex justify-center">
-                                                <CarouselContent>
-                                                    {images.map(
-                                                        (image, index) => (
-                                                            <CarouselItem
-                                                                key={index}
-                                                            >
-                                                                <div>
-                                                                    <Card>
-                                                                        <CardContent className="flex items-center justify-center h-48  pb-6 pt-6">
-                                                                            <img
-                                                                                key={
-                                                                                    index
-                                                                                }
-                                                                                src={
-                                                                                    image as string
-                                                                                }
-                                                                                alt="image"
-                                                                                className="max-h-48 min-h-24"
-                                                                            />
-                                                                        </CardContent>
-                                                                    </Card>
-                                                                </div>
-                                                            </CarouselItem>
-                                                        )
-                                                    )}
-                                                </CarouselContent>
-                                                <CarouselPrevious />
-                                                <CarouselNext />
-                                            </Carousel>
-                                        ) : (
-                                            <div></div>
-                                        )}
-                                    </div>
-
-                                    <Input
-                                        type="file"
-                                        id="file"
-                                        ref={inputFile}
-                                        style={{ display: "none" }}
-                                        onChange={handleChange}
-                                    />
-                                    <Button onClick={onButtonClick}>
-                                        Attach Image
-                                    </Button>
-
-                                    <DialogFooter>
-                                        <DialogClose asChild>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setImages([]);
-                                                }}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </DialogClose>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="outline">
-                                                    Save Post
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                        Are you absolutely sure?
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be
-                                                        undone. This will
-                                                        permanently post.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>
-                                                        Cancel
-                                                    </AlertDialogCancel>
-                                                    <DialogClose asChild>
-                                                        <Button
-                                                            // onClick={() => {
-                                                            //     setPosts([
-                                                            //         ...posts,
-                                                            //         {
-                                                            //             id: Math.random().toString(),
-                                                            //             title: form.getValues(
-                                                            //                 "username"
-                                                            //             ),
-                                                            //             description:
-                                                            //                 form.getValues(
-                                                            //                     "description"
-                                                            //                 ),
-                                                            //             images: images,
-                                                            //             timestamp:
-                                                            //                 new Date(),
-                                                            //         },
-                                                            //     ]);
-                                                            // }}
-                                                            type="submit"
-                                                            variant="secondary"
-                                                        >
-                                                            Post
-                                                        </Button>
-                                                    </DialogClose>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DialogFooter>
-                                </form>
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
+                    {/* Posts */}
+                    <ScrollArea className="flex flex-col p-4 gap-2">
+                        {!posts || posts.length === 0 ? (
+                            <div>No posts yet</div>
+                        ) : (
+                            posts.map((post: AlteredPost, index: number) => (
+                                <PostCard
+                                    key={index}
+                                    postId={post.postId}
+                                    userId={post.userId}
+                                    username={post.username}
+                                    email={post.email}
+                                    isPublic={post.isPublic}
+                                    commentsEnabled={post.commentsEnabled}
+                                    title={post.title}
+                                    description={post.description}
+                                    imageUrls={post.imageUrls}
+                                    createdAt={post.createdAt}
+                                    tags={post.tags}
+                                ></PostCard>
+                            ))
+                        )}
+                    </ScrollArea>
                 </div>
-
-                {/* Posts */}
-                {/* <ScrollArea className="flex flex-col p-4 gap-2">
-                    {posts.map((post: Post, index) => (
-                        <PostCard
-                            key={post.id}
-                            id={post.id}
-                            title={post.title}
-                            description={post.description}
-                            images={post.images}
-                            timestamp={post.timestamp}
-                            tags={post.tags}
-                        ></PostCard>
-                    ))}
-                </ScrollArea> */}
-            </div>
+            ) : (
+                <div>No Rooom selected</div>
+            )}
         </div>
     );
 }
