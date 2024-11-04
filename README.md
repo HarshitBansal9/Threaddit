@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Threaddit
 
 A Threads/Reddit clone made using React in Typescript.Create POsts publicly or in private room and chat with your friends!.
@@ -57,3 +58,7 @@ UI_ROOT_URL = "http://localhost:5173";
 -   run sudo docker-compose up
 
 -   navigate to client/threaddit and run: npm run dev
+=======
+
+
+>>>>>>> d68d3f1b0f16dcf2bada4384472d6aeff282bd9a
