@@ -248,7 +248,11 @@ export class PostController {
         }
     };
 
-    static getPostLikes = async (user: any, body: { postId: number }) => {
+    static GetLikes = async (
+        user: any,
+        body: {},
+        query: { postId: number }
+    ) => {
         const email = user?.email;
 
         try {
@@ -256,7 +260,7 @@ export class PostController {
                 .select()
                 .from(likesTable)
                 .innerJoin(users, eq(users.id, likesTable.userId))
-                .where(eq(likesTable.postId, body.postId))
+                .where(eq(likesTable.postId, query.postId))
                 .execute();
 
             return likes;
@@ -265,11 +269,39 @@ export class PostController {
         }
     };
 
-    static CreatePostLike = async (user: any, body: { like: Like }) => {
+    static LikePost = async (user: any, body: { like: Like }) => {
         try {
-            await db.insert(likesTable).values(body.like);
+            body.like.createdAt = new Date();
+            const like = await db
+                .insert(likesTable)
+                .values(body.like)
+                .execute();
+            return like;
         } catch (error) {
-            console.error("Error while creating a comment");
+            console.error("Error while creating a like");
+            console.error(error);
+        }
+    };
+
+    static RemoveLike = async (
+        user: any,
+        body: { postId: number; userId: number }
+    ) => {
+        try {
+            const removed = await db
+                .delete(likesTable)
+                .where(
+                    and(
+                        eq(likesTable.postId, body.postId),
+                        eq(likesTable.userId, body.userId)
+                    )
+                )
+                .execute();
+
+            console.log(removed);
+        } catch (error) {
+            console.error("Error while deleting a like");
+            console.error(error);
         }
     };
 }

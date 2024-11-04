@@ -24,5 +24,11 @@ router.post(
     ControllerRunner(PostController.CreatePostComment)
 );
 
+
+router.post("/likepost", ControllerRunner(PostController.LikePost));
+
+router.post("/removelike", ControllerRunner(PostController.RemoveLike));
+
+router.get("/getlikes", ControllerRunner(PostController.GetLikes));
 router.get("");
 export default router;

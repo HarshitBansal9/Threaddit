@@ -32,6 +32,7 @@ import { DialogHeader } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { useAtom } from "jotai";
 import { myUserAtom } from "@/lib/atoms";
+import { number } from "zod";
 
 const postComment = async (comment: string, postId: number, userId: number) => {
     try {
@@ -60,9 +61,12 @@ function PostCard({
     commentsEnabled,
 }: AlteredPost) {
     const [commentsLoading, setCommentsLoading] = useState(true);
+    const [likesLoading, setLikesLoading] = useState(true);
+    const [likes, setLikes] = useState<number>(0);
     const [comments, setComments] = useState<any[]>([]);
     const [commentTyped, setCommentTyped] = useState(""); // for the comment input
     const [myUser, setMyUser] = useAtom(myUserAtom);
+    const [liked, setLiked] = useState("white");
 
     const fetchComments = async (postId: number) => {
         console.log("fetching comments", postId);
@@ -70,6 +74,39 @@ function PostCard({
             params: { postId },
         });
         return data.data;
+    };
+
+    const fetchLikes = async (postId: number) => {
+        const data = await axiosInstance.get("/api/posts/getlikes", {
+            params: { postId },
+        });
+        return data.data;
+    };
+
+    const handleLike = async (liked: string, userId: number) => {
+        try {
+            if (liked == "white") {
+                setLiked("red");
+                const data = await axiosInstance.post("/api/posts/likepost", {
+                    like: {
+                        createdAt: new Date(),
+                        postId: postId,
+                        userId: userId,
+                    },
+                });
+                console.log(data);
+            } else {
+                setLiked("white");
+                const data = await axiosInstance.post("/api/posts/removelike", {
+                    postId: postId,
+                    userId: userId,
+                });
+                console.log(data);
+            }
+        } catch (error) {
+            console.error("Error while liking post");
+            console.error(error);
+        }
     };
     useEffect(() => {
         if (commentsEnabled) {
@@ -79,6 +116,19 @@ function PostCard({
                 setCommentsLoading(false);
             });
         }
+
+        fetchLikes(postId).then((likes) => {
+            console.log("Likes", likes.data);
+            for (let like of likes.data) {
+                if (like.users.id == myUser?.id) {
+                    setLiked("red");
+                    break;
+                }
+            }
+
+            setLikes(likes.data.length);
+            setLikesLoading(false);
+        });
     }, []);
     return (
         <Dialog>
@@ -150,16 +200,23 @@ function PostCard({
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                    <Button variant="ghost" size="sm">
-                        <Heart className="w-5 h-5 mr-1" />
-                        Like
-                    </Button>
-
+                    <Heart
+                        color={liked}
+                        onClick={() => {
+                            if (myUser) handleLike(liked, myUser.id);
+                        }}
+                        className="w-5 h-5 mr-1 hover:fill-red-700"
+                    ></Heart>
+                    {!likesLoading ? likes : "Loading"} {likes == 1 ? "like" : "likes"}
                     <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                            <MessageCircle className="w-5 h-5 mr-1" />
-                            Comment
-                        </Button>
+                        {commentsEnabled ? (
+                            <Button variant="ghost" size="sm">
+                                <MessageCircle className="w-5 h-5 mr-1" />
+                                Comment
+                            </Button>
+                        ) : (
+                            <div>Comments disabled</div>
+                        )}
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
@@ -231,10 +288,6 @@ function PostCard({
                             Post
                         </Button>
                     </DialogContent>
-                    <Button variant="ghost" size="sm">
-                        <Share2 className="w-5 h-5 mr-1" />
-                        Share
-                    </Button>
                 </CardFooter>
             </Card>
         </Dialog>
