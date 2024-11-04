@@ -1,9 +1,10 @@
+import { REDIS_PORT, REDIS_HOST } from "@/config/environment";
 import { error } from "console";
 import Redis from "ioredis";
 
 const redisClient = new Redis({
-    host:"localhost",
-    port:6379
+    host:REDIS_HOST,
+    port:REDIS_PORT as unknown as number
 })
 
 redisClient.on("error",()=>{

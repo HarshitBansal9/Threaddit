@@ -27,3 +27,6 @@ export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 export const JWT_SECRET = process.env.JWT_SECRET ?? "";
 
 export const UI_ROOT_URL = process.env.UI_ROOT_URL ?? "http://localhost:5173";
+
+export const REDIS_HOST = process.env.REDIS_HOST ?? "localhost";
+export const REDIS_PORT = normalizePort(process.env.REDIS_PORT ?? "6379");

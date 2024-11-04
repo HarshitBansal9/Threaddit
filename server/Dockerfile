@@ -1,5 +1,5 @@
 # pull node
-FROM node:16
+FROM node:lts
 #sets the working directory for any subsequent instructions that follow it in the Dockerfile. This is where commands like RUN and COPY will be executed.
 WORKDIR /app
 
