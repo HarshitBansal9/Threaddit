@@ -87,12 +87,11 @@ function alterPosts(p: any) {
         imagesAgg,
         tagsAgg,
     });
-    
+
     //adding the imageUrls and tags to the postsAgg object as each image and tag is associated with a post with the postId
     Object.values(imagesAgg).forEach((image: any) => {
         postsAgg[image.postId].imageUrls.push(image.imageUrl);
     });
-
 
     //same agai for tags
     Object.values(tagsAgg).forEach((tag: any) => {
@@ -157,7 +156,11 @@ export class PostController {
         }
     };
 
-    static GetPrivatePosts = async (user: any, body: {},query:{roomId:number}) => {
+    static GetPrivatePosts = async (
+        user: any,
+        body: {},
+        query: { roomId: number }
+    ) => {
         try {
             const email = user?.email;
             const privatePosts = await db
@@ -174,7 +177,10 @@ export class PostController {
                 .leftJoin(tagsTable, eq(postsTable.postId, tagsTable.postId))
                 .innerJoin(users, eq(users.id, postsTable.userId))
                 .where(
-                    and(eq(postsTable.isPublic, false), eq(postRoomsTable.roomId, query.roomId))
+                    and(
+                        eq(postsTable.isPublic, false),
+                        eq(postRoomsTable.roomId, query.roomId)
+                    )
                 )
                 .execute();
             const alteredPosts = alterPosts(privatePosts);
@@ -205,14 +211,18 @@ export class PostController {
         }
     };
 
-    static GetPostComments = async (user: any, body: { postId: number }) => {
-        const email = user?.email;
+    static GetPostComments = async (
+        user: any,
+        body: {},
+        query: { postId: number }
+    ) => {
+        console.log("Fetching comments for post", query.postId);
         try {
             const comments = await db
                 .select()
                 .from(commentsTable)
                 .innerJoin(users, eq(users.id, commentsTable.userId))
-                .where(eq(commentsTable.postId, body.postId))
+                .where(eq(commentsTable.postId, query.postId))
                 .execute();
             return comments;
         } catch (error) {
@@ -224,8 +234,15 @@ export class PostController {
         user: any,
         body: { comment: Comment }
     ) => {
+        console.log("Creating a new comment");
+        body.comment.createdAt = new Date();
+        console.log(body.comment);
         try {
-            await db.insert(commentsTable).values(body.comment);
+            const comment = await db
+                .insert(commentsTable)
+                .values(body.comment)
+                .returning();
+            console.log(comment);
         } catch (error) {
             console.error("Error while creating a comment");
         }

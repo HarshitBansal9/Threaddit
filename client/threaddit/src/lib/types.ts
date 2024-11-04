@@ -1,5 +1,5 @@
 export interface AlteredPost {
-    postId?:number,
+    postId:number,
     userId:number,
     username:string,
     email:string

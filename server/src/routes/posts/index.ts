@@ -12,18 +12,15 @@ router.post("/createpost", ControllerRunner(PostController.CreatePost));
 
 router.get("/getpubposts", ControllerRunner(PostController.GetPublicPosts));
 
-router.get(
-    "/postsforroom",
-    ControllerRunner(PostController.GetPrivatePosts)
-);
+router.get("/postsforroom", ControllerRunner(PostController.GetPrivatePosts));
 
 router.get(
     "/getpostcomments",
     ControllerRunner(PostController.GetPostComments)
 );
 
-router.get(
-    "/createpostcomment",
+router.post(
+    "/createcomment",
     ControllerRunner(PostController.CreatePostComment)
 );
 
