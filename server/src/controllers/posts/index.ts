@@ -55,11 +55,9 @@ function alterPosts(p: any) {
     const tagsAgg: { [key: string]: any } = {};
     const roomsAgg: { [key: string]: any } = {};
 
-    console.log(p);
-
     p.forEach((postObj: any) => {
         //deconstructing the post object
-        const { posts, images, tags, users, rooms } = postObj;
+        const { posts, images, tags, users, post_rooms } = postObj;
 
         //checking if the post is already in the postsAgg object and if not adding it
         if (posts && !postsAgg[posts.postId]) {
@@ -69,7 +67,7 @@ function alterPosts(p: any) {
             postsAgg[posts.postId]["userId"] = users?.id;
             postsAgg[posts.postId]["username"] = users?.username;
             postsAgg[posts.postId]["email"] = users?.email;
-            postsAgg[posts.postId]["roomId"] = rooms?.roomId;
+            postsAgg[posts.postId]["roomId"] = post_rooms?.roomId;
         }
 
         //checking if the images is already in the imagesAgg object and if not adding it
@@ -81,12 +79,6 @@ function alterPosts(p: any) {
         if (tags && !tagsAgg[tags.tagId]) {
             tagsAgg[tags.tagId] = tags;
         }
-    });
-
-    console.log({
-        postsAgg,
-        imagesAgg,
-        tagsAgg,
     });
 
     //adding the imageUrls and tags to the postsAgg object as each image and tag is associated with a post with the postId
@@ -176,7 +168,6 @@ export class PostController {
             const cachedPosts = await RedisClient.get(cacheKey);
 
             if (cachedPosts) {
-                console.log("Returning cached posts");
                 return JSON.parse(cachedPosts);
             }
 
@@ -260,7 +251,6 @@ export class PostController {
         body: {},
         query: { postId: number }
     ) => {
-        console.log("Fetching comments for post", query.postId);
         try {
             const comments = await db
                 .select()
@@ -278,7 +268,6 @@ export class PostController {
         user: any,
         body: { comment: Comment }
     ) => {
-        console.log("Creating a new comment");
         body.comment.createdAt = new Date();
         console.log(body.comment);
         try {
@@ -286,7 +275,6 @@ export class PostController {
                 .insert(commentsTable)
                 .values(body.comment)
                 .returning();
-            console.log(comment);
         } catch (error) {
             console.error("Error while creating a comment");
         }

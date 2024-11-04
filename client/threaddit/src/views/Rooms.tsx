@@ -8,8 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Card,
     CardContent,
+    CardDescription,
     CardFooter,
     CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
     Lock,
@@ -72,6 +74,18 @@ import { useAtom } from "jotai";
 import { Checkbox } from "@/components/ui/checkbox";
 import { axiosInstance } from "@/axios/axiosInstance";
 import useSWR from "swr";
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { Label } from "@radix-ui/react-menubar";
+import { get } from "http";
 
 const roomFormSchema = z.object({
     roomName: z.string().min(2, {
@@ -116,6 +130,31 @@ const getPostsForRoom = async (roomId: string) => {
         console.error(error);
     }
 };
+
+const getRoomMembers = async (roomId: string) => {
+    try {
+        const data = await axiosInstance.get("/api/rooms/getroommembers", {
+            params: { roomId },
+        });
+        console.log("Room members", data.data);
+        return data;
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const makeAdmin = async (userId: number, roomId: string) => {
+    try {
+        const data = await axiosInstance.post("/api/rooms/makeadmin", {
+            userId: userId,
+            roomId: roomId,
+        });
+        console.log("User made admin", data);
+    } catch (error) {
+        console.error(error);
+    }
+};
+
 const createPost = async (
     post: Post,
     cloudinaryImages: File[],
@@ -159,11 +198,34 @@ const createPost = async (
     }
 };
 
+function getAllMembersNotInRoom(users: any[], roomMembers: any) {
+    console.log("Users", users);
+    console.log("Room members", roomMembers.data);
+    let usersNotInRoom = [];
+    if (roomMembers.data === undefined) {
+        return users;
+    }
+    for (let i = 0; i < users.length; i++) {
+        let flag = 0;
+        for (let j = 0; j < roomMembers.data.length; j++) {
+            if (users[i].id === roomMembers.data[j].users.id) {
+                flag = 1;
+                break;
+            }
+        }
+        if (flag === 0) {
+            usersNotInRoom.push(users[i]);
+        }
+    }
+    return usersNotInRoom;
+}
+
 function Rooms() {
     const [images, setImages] = useState<(File | String)[]>([]);
     const [cloudinaryImages, setCloudinaryImages] = useState<File[]>([]);
     const [posts, setPosts] = useState<any[]>([]);
     const [myUser, setMyUser] = useAtom(myUserAtom);
+    const [roomMembers, setRoomMembers] = useState<any>([]);
     const { rooms, isRoomsLoading } = getRooms();
     const [commentsEnabled, setCommentsEnabled] = useState<boolean>(false);
     let myUserForRoom: any = myUser;
@@ -206,10 +268,6 @@ function Rooms() {
             {/* Sidebar */}
             <div className="w-1/4 border-r">
                 <div className="p-2 flex flex-row gap-2">
-                    <div className="relative w-1/2">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input placeholder="Search rooms" className="pl-8" />
-                    </div>
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button variant="outline" className="text-lg w-1/2">
@@ -321,10 +379,16 @@ function Rooms() {
                             }`}
                             onClick={async () => {
                                 setSelectedRoom(room);
+
                                 const posts = await getPostsForRoom(
                                     room.rooms.roomId
                                 );
                                 console.log("Posts for room", posts.data);
+                                const roomMembers = await getRoomMembers(
+                                    room.rooms.roomId
+                                );
+                                console.log("Room members", roomMembers);
+                                setRoomMembers(roomMembers?.data);
                                 setPosts(posts.data);
                             }}
                         >
@@ -368,6 +432,112 @@ function Rooms() {
                                 </h2>
                             </div>
                         </div>
+
+                        {selectedRoom.members.isAdmin ? (
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="px-4 py-6 text-xl ml-auto mr-2 w-1/4"
+                                    >
+                                        Admin Priviliges
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent>
+                                    <SheetHeader>
+                                        <SheetTitle>
+                                            Add other users to room
+                                        </SheetTitle>
+                                    </SheetHeader>
+                                    <ScrollArea className="max-h-1/2 overflow:auto">
+                                        {getAllMembersNotInRoom(
+                                            users,
+                                            roomMembers
+                                        ).map((user: any, index: number) => (
+                                            <Card
+                                                key={index}
+                                                className="border-none w-full hover:"
+                                            >
+                                                <CardHeader>
+                                                    <CardTitle>
+                                                        {user.username}
+                                                    </CardTitle>
+                                                    <CardDescription>
+                                                        {user.email}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                            </Card>
+                                        ))}
+                                    </ScrollArea>
+
+                                    <SheetTitle>
+                                        Make other users admin
+                                    </SheetTitle>
+
+                                    <ScrollArea className="max-h-1/2 overflow:auto">
+                                        {roomMembers.data === undefined ? (
+                                            <div></div>
+                                        ) : (
+                                            roomMembers.data.map(
+                                                (user: any, index: number) =>
+                                                    user.members.isAdmin ===
+                                                    false ? (
+                                                        <Card
+                                                            key={index}
+                                                            className="border-none w-full hover:"
+                                                        >
+                                                            <CardHeader>
+                                                                <CardTitle>
+                                                                    {
+                                                                        user
+                                                                            .users
+                                                                            .username
+                                                                    }
+                                                                </CardTitle>
+                                                                <CardDescription>
+                                                                    {
+                                                                        user
+                                                                            .users
+                                                                            .email
+                                                                    }
+                                                                </CardDescription>
+                                                            </CardHeader>
+                                                            <Button
+                                                                onClick={(
+                                                                    e
+                                                                ) => {
+                                                                    e.preventDefault();
+                                                                    makeAdmin(
+                                                                        user
+                                                                            .users
+                                                                            .id,
+                                                                        selectedRoom
+                                                                            .rooms
+                                                                            .roomId
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Make admin
+                                                            </Button>
+                                                        </Card>
+                                                    ) : (
+                                                        <div></div>
+                                                    )
+                                            )
+                                        )}
+                                    </ScrollArea>
+                                    <SheetFooter>
+                                        <SheetClose asChild>
+                                            <Button type="submit">
+                                                Save changes
+                                            </Button>
+                                        </SheetClose>
+                                    </SheetFooter>
+                                </SheetContent>
+                            </Sheet>
+                        ) : (
+                            <div></div>
+                        )}
 
                         <Dialog>
                             <DialogTrigger asChild>

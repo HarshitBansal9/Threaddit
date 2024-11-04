@@ -105,6 +105,24 @@ export class RoomController {
         }
     };
 
+    static getRoomMembers = async (
+        user: any,
+        body: {},
+        query: { roomId: number }
+    ) => {
+        try {
+            console.log("getting room members", query);
+            const members = await db
+                .select()
+                .from(membersTable)
+                .innerJoin(users, eq(users.id, membersTable.userId))
+                .where(eq(membersTable.roomId, query.roomId));
+            return members;
+        } catch (error) {
+            console.error("Error while getting room members");
+        }
+    };
+
     static makeUserAdmin = async (
         user: any,
         body: { roomId: number; userId: number }

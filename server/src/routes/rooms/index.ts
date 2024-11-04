@@ -11,5 +11,8 @@ router.post("/createroom", ControllerRunner(RoomController.CreateRoom));
 
 router.get("/getrooms", ControllerRunner(RoomController.GetRooms));
 
+router.get("/getroommembers", ControllerRunner(RoomController.getRoomMembers));
+
+router.post("/makeadmin", ControllerRunner(RoomController.makeUserAdmin));
 
 export default router;
