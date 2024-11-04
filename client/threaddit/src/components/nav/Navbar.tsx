@@ -43,15 +43,6 @@ function Navbar() {
                         Rooms
                     </MenubarTrigger>
                 </MenubarMenu>
-                <MenubarMenu>
-                    <MenubarTrigger>Profile</MenubarTrigger>
-                </MenubarMenu>
-                <MenubarMenu>
-                    <MenubarTrigger>Create</MenubarTrigger>
-                </MenubarMenu>
-                <MenubarMenu>
-                    <MenubarTrigger>Profiles</MenubarTrigger>
-                </MenubarMenu>
                 {isLoggedIn && (
                     <MenubarMenu>
                         <MenubarTrigger onClick={() => logout()}>

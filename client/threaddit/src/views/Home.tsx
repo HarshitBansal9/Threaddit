@@ -184,22 +184,16 @@ function Home() {
                         </Avatar>
                         <div className="flex flex-col">
                             <CardTitle className="text-md">
-                                Harshit Bansal
+                                {myUser?.username}
                             </CardTitle>
                             <CardDescription className="text-sm">
-                                @shadcn
+                                {myUser?.email}
                             </CardDescription>
                         </div>
                     </CardHeader>
-                    <CardContent className="flex flex-col">
+                    {/* <CardContent className="flex flex-col">
                         <Separator />
                         <div className="flex flex-row items-center w-full justify-evenly border-b-[1px] pb-3">
-                            <div className="flex justify-center text-center flex-col">
-                                <CardDescription className="text-sm">
-                                    Followers
-                                </CardDescription>
-                                <CardTitle className="text-lg">18</CardTitle>
-                            </div>
                             <Separator />
                             <div className="flex justify-center text-center flex-col">
                                 <CardDescription className="text-sm">
@@ -233,7 +227,7 @@ function Home() {
                             color="gray"
                             className="w-6 h-6 ml-auto mr-3"
                         />
-                    </CardFooter>
+                    </CardFooter> */}
                 </Card>
 
                 <div className="w-full flex justify-center pt-5">
