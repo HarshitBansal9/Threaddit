@@ -6,6 +6,7 @@ import { postRoomsTable } from "@/lib/db/schema/postRooms";
 import { postsTable } from "@/lib/db/schema/posts";
 import { tagsTable } from "@/lib/db/schema/tags";
 import { users } from "@/lib/db/schema/users";
+import RedisClient from "@/lib/redis/redis";
 import { and, eq } from "drizzle-orm";
 
 interface Post {
@@ -150,6 +151,14 @@ export class PostController {
                     .values(tags)
                     .returning();
             }
+
+            if (body.roomId) {
+                const cacheKey = `posts:${body.roomId}`;
+                await RedisClient.del(cacheKey);
+            } else {
+                const cacheKey = "posts:public";
+                await RedisClient.del(cacheKey);
+            }
         } catch (error) {
             console.error("Error while creating post");
             console.error(error);
@@ -162,6 +171,15 @@ export class PostController {
         query: { roomId: number }
     ) => {
         try {
+            const cacheKey = `posts:${query.roomId}`;
+
+            const cachedPosts = await RedisClient.get(cacheKey);
+
+            if (cachedPosts) {
+                console.log("Returning cached posts");
+                return JSON.parse(cachedPosts);
+            }
+
             const email = user?.email;
             const privatePosts = await db
                 .select()
@@ -184,6 +202,15 @@ export class PostController {
                 )
                 .execute();
             const alteredPosts = alterPosts(privatePosts);
+
+            //expires after an hour
+            await RedisClient.set(
+                cacheKey,
+                JSON.stringify(alteredPosts),
+                "EX",
+                3600
+            );
+
             return alteredPosts;
         } catch (error) {
             console.error("Error while fetching private posts");
@@ -192,6 +219,14 @@ export class PostController {
 
     static GetPublicPosts = async () => {
         try {
+            const cacheKey = "posts:public";
+            const cachedPosts = await RedisClient.get(cacheKey);
+
+            if (cachedPosts) {
+                console.log("Returning cached posts");
+                return JSON.parse(cachedPosts);
+            }
+
             const publicPosts = await db
                 .select()
                 .from(postsTable)
@@ -204,6 +239,15 @@ export class PostController {
                 .where(eq(postsTable.isPublic, true))
                 .execute();
             const alteredPosts = alterPosts(publicPosts);
+
+            //expires after an hour
+            await RedisClient.set(
+                cacheKey,
+                JSON.stringify(alteredPosts),
+                "EX",
+                3600
+            );
+
             return alteredPosts;
         } catch (error) {
             console.error("Error while fetching public posts");

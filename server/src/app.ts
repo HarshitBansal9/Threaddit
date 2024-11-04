@@ -19,6 +19,11 @@ import db from "./lib/db";
 import { users } from "./lib/db/schema/users";
 import { eq } from "drizzle-orm";
 
+import Redis from "ioredis";
+
+//creating a new redis client
+
+
 //parses incoming cookies and makes sure they are signed
 app.use(cookieParser());
 app.use(cors(corsOptions));
