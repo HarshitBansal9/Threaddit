@@ -6,8 +6,10 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
+  CardTitle,  
 } from "@/components/ui/card";
+// import {CloudinaryImage} from "@cloudinary/base/assets/cloudinaryImage";
+// import {AdvancedImage} from "@cloudinary/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { Badge, Heart, MessageCircle, Share2 } from "lucide-react";
 import { Button } from "../ui/button";

@@ -12,7 +12,7 @@ import { Separator } from "@radix-ui/react-menubar";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
+import Axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -99,21 +99,44 @@ const getPosts = () => {
         isPostsLoading: isLoading,
     };
 };
+const createPost = async (
+    post: Post,
+    cloudinaryImages: File[],
+    tags: string[]
+) => {
+    const cloudImages: string[] = [];
 
-const createPost = async (post: Post, images: string[], tags: string[]) => {
-    await axiosInstance
-        .post("/api/posts/createpost", {
+    try {
+        // Upload images to Cloudinary
+        await Promise.all(
+            cloudinaryImages.map(async (image) => {
+                const formData = new FormData();
+                formData.append("file", image);
+                formData.append("upload_preset", "threaddit");
+
+                const res = await Axios.post(
+                    "https://api.cloudinary.com/v1_1/ddlgdzfrn/image/upload",
+                    formData
+                );
+
+                console.log(res);
+                cloudImages.push(res.data.url);
+            })
+        );
+
+        // Create post with the uploaded image URLs
+        const postResponse = await axiosInstance.post("/api/posts/createpost", {
             post: post,
-            images: images,
+            images: cloudImages,
             tags: tags,
-        })
-        .then((res) => {
-            console.log(res);
-        })
-        .then((res) => {
-            console.log(res);
-            getPosts();
         });
+
+        console.log(postResponse);
+
+        // Fetch posts for the room
+    } catch (error) {
+        console.error("An error occurred:", error);
+    }
 };
 
 export const fetcher = (url: string) =>
@@ -121,6 +144,7 @@ export const fetcher = (url: string) =>
 
 function Home() {
     const [images, setImages] = useState<(File | String)[]>([]);
+    const [cloudinaryImages, setCloudinaryImages] = useState<File[]>([]);
     const [myUser, setMyUser] = useAtom(myUserAtom);
     const [commentsEnabled, setCommentsEnabled] = useState<boolean>(false);
     const { users, isUsersLoading } = useUsersList();
@@ -128,6 +152,7 @@ function Home() {
 
     function handleChange(e: any) {
         setImages([...images, URL.createObjectURL(e.target.files[0])]);
+        setCloudinaryImages([...cloudinaryImages, e.target.files[0]]);
     }
 
     const inputFile = useRef<HTMLInputElement | null>(null);
@@ -338,6 +363,7 @@ function Home() {
                                                 variant="outline"
                                                 onClick={() => {
                                                     setImages([]);
+                                                    setCloudinaryImages([]);
                                                     form.reset();
                                                 }}
                                             >
@@ -388,16 +414,13 @@ function Home() {
                                                                         commentsEnabled:
                                                                             commentsEnabled,
                                                                     },
-                                                                    images.map(
-                                                                        (
-                                                                            image
-                                                                        ) => {
-                                                                            return image as string;
-                                                                        }
-                                                                    ),
+                                                                    cloudinaryImages,
                                                                     []
                                                                 );
                                                                 setImages([]);
+                                                                setCloudinaryImages(
+                                                                    []
+                                                                );
                                                                 form.reset();
                                                             }}
                                                             type="submit"

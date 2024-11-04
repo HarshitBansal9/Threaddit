@@ -24,10 +24,11 @@ import PostCard from "@/components/posts/PostCard";
 import { title } from "process";
 import { time } from "console";
 import { AlteredPost, Post, User } from "@/lib/types";
-import { useForm } from "react-hook-form";
+import { set, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { fetcher, formSchema, useUsersList } from "./Home";
 import { z } from "zod";
+import Axios from "axios";
 import {
     Dialog,
     DialogContent,
@@ -117,28 +118,50 @@ const getPostsForRoom = async (roomId: string) => {
 };
 const createPost = async (
     post: Post,
-    images: string[],
+    cloudinaryImages: File[],
     tags: string[],
     roomId: string
 ) => {
-    await axiosInstance
-        .post("/api/posts/createpost", {
+    const cloudImages: string[] = [];
+
+    try {
+        // Upload images to Cloudinary
+        await Promise.all(
+            cloudinaryImages.map(async (image) => {
+                const formData = new FormData();
+                formData.append("file", image);
+                formData.append("upload_preset", "threaddit");
+
+                const res = await Axios.post(
+                    "https://api.cloudinary.com/v1_1/ddlgdzfrn/image/upload",
+                    formData
+                );
+
+                console.log(res);
+                cloudImages.push(res.data.url);
+            })
+        );
+
+        // Create post with the uploaded image URLs
+        const postResponse = await axiosInstance.post("/api/posts/createpost", {
             post: post,
-            images: images,
+            images: cloudImages,
             tags: tags,
             roomId: roomId,
-        })
-        .then((res) => {
-            console.log(res);
-        })
-        .then((res) => {
-            console.log(res);
-            getPostsForRoom(roomId);
         });
+
+        console.log(postResponse);
+
+        // Fetch posts for the room
+        await getPostsForRoom(roomId);
+    } catch (error) {
+        console.error("An error occurred:", error);
+    }
 };
 
 function Rooms() {
     const [images, setImages] = useState<(File | String)[]>([]);
+    const [cloudinaryImages, setCloudinaryImages] = useState<File[]>([]);
     const [posts, setPosts] = useState<any[]>([]);
     const [myUser, setMyUser] = useAtom(myUserAtom);
     const { rooms, isRoomsLoading } = getRooms();
@@ -152,6 +175,7 @@ function Rooms() {
 
     function handleChange(e: any) {
         setImages([...images, URL.createObjectURL(e.target.files[0])]);
+        setCloudinaryImages([...cloudinaryImages, e.target.files[0]]);
     }
     const inputFile = useRef<HTMLInputElement | null>(null);
     const onButtonClick = () => {
@@ -304,7 +328,6 @@ function Rooms() {
                                 setPosts(posts.data);
                             }}
                         >
-                            
                             <Avatar className="h-10 w-10">
                                 <AvatarImage
                                     src={`https://api.dicebear.com/6.x/initials/svg?seed=${room.rooms.roomName}`}
@@ -473,6 +496,7 @@ function Rooms() {
                                                     variant="outline"
                                                     onClick={() => {
                                                         setImages([]);
+                                                        setCloudinaryImages([]);
                                                         form.reset();
                                                     }}
                                                 >
@@ -524,19 +548,16 @@ function Rooms() {
                                                                             commentsEnabled:
                                                                                 commentsEnabled,
                                                                         },
-                                                                        images.map(
-                                                                            (
-                                                                                image
-                                                                            ) => {
-                                                                                return image as string;
-                                                                            }
-                                                                        ),
+                                                                        cloudinaryImages,
                                                                         [],
                                                                         selectedRoom
                                                                             .rooms
                                                                             .roomId
                                                                     );
                                                                     setImages(
+                                                                        []
+                                                                    );
+                                                                    setCloudinaryImages(
                                                                         []
                                                                     );
                                                                     form.reset();
